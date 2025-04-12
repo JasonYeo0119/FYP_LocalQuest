@@ -1,0 +1,616 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:localquest/Module_User_Account/Profile.dart';
+
+class Updateprofiledetails extends StatefulWidget {
+  @override
+  _UpdateprofiledetailsState createState() => _UpdateprofiledetailsState();
+}
+
+class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
+
+  final user=FirebaseAuth.instance.currentUser;  //Retrieve current logged in user
+
+  String _selectedCountry = "";
+  bool _obscureText = true;
+  final List<Map<String, String>> _countries = [
+    {"name": "Malaysia", "code": "MY", "phone": "+60"},
+    {"name": "Afghanistan", "code": "AF", "phone": "+93"},
+    {"name": "Albania", "code": "AL", "phone": "+355"},
+    {"name": "Algeria", "code": "DZ", "phone": "+213"},
+    {"name": "Andorra", "code": "AD", "phone": "+376"},
+    {"name": "Angola", "code": "AO", "phone": "+244"},
+    {"name": "Antigua and Barbuda", "code": "AG", "phone": "+1-268"},
+    {"name": "Argentina", "code": "AR", "phone": "+54"},
+    {"name": "Armenia", "code": "AM", "phone": "+374"},
+    {"name": "Australia", "code": "AU", "phone": "+61"},
+    {"name": "Austria", "code": "AT", "phone": "+43"},
+    {"name": "Azerbaijan", "code": "AZ", "phone": "+994"},
+    {"name": "Bahamas", "code": "BS", "phone": "+1-242"},
+    {"name": "Bahrain", "code": "BH", "phone": "+973"},
+    {"name": "Bangladesh", "code": "BD", "phone": "+880"},
+    {"name": "Barbados", "code": "BB", "phone": "+1-246"},
+    {"name": "Belarus", "code": "BY", "phone": "+375"},
+    {"name": "Belgium", "code": "BE", "phone": "+32"},
+    {"name": "Belize", "code": "BZ", "phone": "+501"},
+    {"name": "Benin", "code": "BJ", "phone": "+229"},
+    {"name": "Bhutan", "code": "BT", "phone": "+975"},
+    {"name": "Bolivia", "code": "BO", "phone": "+591"},
+    {"name": "Bosnia and Herzegovina", "code": "BA", "phone": "+387"},
+    {"name": "Botswana", "code": "BW", "phone": "+267"},
+    {"name": "Brazil", "code": "BR", "phone": "+55"},
+    {"name": "Brunei", "code": "BN", "phone": "+673"},
+    {"name": "Bulgaria", "code": "BG", "phone": "+359"},
+    {"name": "Burkina Faso", "code": "BF", "phone": "+226"},
+    {"name": "Burundi", "code": "BI", "phone": "+257"},
+    {"name": "Cabo Verde", "code": "CV", "phone": "+238"},
+    {"name": "Cambodia", "code": "KH", "phone": "+855"},
+    {"name": "Cameroon", "code": "CM", "phone": "+237"},
+    {"name": "Canada", "code": "CA", "phone": "+1"},
+    {"name": "Central African Republic", "code": "CF", "phone": "+236"},
+    {"name": "Chad", "code": "TD", "phone": "+235"},
+    {"name": "Chile", "code": "CL", "phone": "+56"},
+    {"name": "China", "code": "CN", "phone": "+86"},
+    {"name": "Colombia", "code": "CO", "phone": "+57"},
+    {"name": "Comoros", "code": "KM", "phone": "+269"},
+    {"name": "Congo (Congo-Brazzaville)", "code": "CG", "phone": "+242"},
+    {"name": "Costa Rica", "code": "CR", "phone": "+506"},
+    {"name": "Croatia", "code": "HR", "phone": "+385"},
+    {"name": "Cuba", "code": "CU", "phone": "+53"},
+    {"name": "Cyprus", "code": "CY", "phone": "+357"},
+    {"name": "Czech Republic", "code": "CZ", "phone": "+420"},
+    {"name": "Denmark", "code": "DK", "phone": "+45"},
+    {"name": "Djibouti", "code": "DJ", "phone": "+253"},
+    {"name": "Dominica", "code": "DM", "phone": "+1-767"},
+    {"name": "Dominican Republic", "code": "DO", "phone": "+1-809"},
+    {"name": "DR Congo (Congo-Kinshasa)", "code": "CD", "phone": "+243"},
+    {"name": "Ecuador", "code": "EC", "phone": "+593"},
+    {"name": "Egypt", "code": "EG", "phone": "+20"},
+    {"name": "El Salvador", "code": "SV", "phone": "+503"},
+    {"name": "Equatorial Guinea", "code": "GQ", "phone": "+240"},
+    {"name": "Eritrea", "code": "ER", "phone": "+291"},
+    {"name": "Estonia", "code": "EE", "phone": "+372"},
+    {"name": "Eswatini", "code": "SZ", "phone": "+268"},
+    {"name": "Ethiopia", "code": "ET", "phone": "+251"},
+    {"name": "Fiji", "code": "FJ", "phone": "+679"},
+    {"name": "Finland", "code": "FI", "phone": "+358"},
+    {"name": "France", "code": "FR", "phone": "+33"},
+    {"name": "Gabon", "code": "GA", "phone": "+241"},
+    {"name": "Gambia", "code": "GM", "phone": "+220"},
+    {"name": "Georgia", "code": "GE", "phone": "+995"},
+    {"name": "Germany", "code": "DE", "phone": "+49"},
+    {"name": "Ghana", "code": "GH", "phone": "+233"},
+    {"name": "Greece", "code": "GR", "phone": "+30"},
+    {"name": "Grenada", "code": "GD", "phone": "+1-473"},
+    {"name": "Guatemala", "code": "GT", "phone": "+502"},
+    {"name": "Guinea", "code": "GN", "phone": "+224"},
+    {"name": "Guinea-Bissau", "code": "GW", "phone": "+245"},
+    {"name": "Guyana", "code": "GY", "phone": "+592"},
+    {"name": "Haiti", "code": "HT", "phone": "+509"},
+    {"name": "Honduras", "code": "HN", "phone": "+504"},
+    {"name": "Hungary", "code": "HU", "phone": "+36"},
+    {"name": "Iceland", "code": "IS", "phone": "+354"},
+    {"name": "India", "code": "IN", "phone": "+91"},
+    {"name": "Indonesia", "code": "ID", "phone": "+62"},
+    {"name": "Iran", "code": "IR", "phone": "+98"},
+    {"name": "Iraq", "code": "IQ", "phone": "+964"},
+    {"name": "Ireland", "code": "IE", "phone": "+353"},
+    {"name": "Israel", "code": "IL", "phone": "+972"},
+    {"name": "Italy", "code": "IT", "phone": "+39"},
+    {"name": "Jamaica", "code": "JM", "phone": "+1-876"},
+    {"name": "Japan", "code": "JP", "phone": "+81"},
+    {"name": "Jordan", "code": "JO", "phone": "+962"},
+    {"name": "Kazakhstan", "code": "KZ", "phone": "+7"},
+    {"name": "Kenya", "code": "KE", "phone": "+254"},
+    {"name": "Kiribati", "code": "KI", "phone": "+686"},
+    {"name": "Korea, North", "code": "KP", "phone": "+850"},
+    {"name": "Korea, South", "code": "KR", "phone": "+82"},
+    {"name": "Kosovo", "code": "XK", "phone": "+383"},
+    {"name": "Kuwait", "code": "KW", "phone": "+965"},
+    {"name": "Kyrgyzstan", "code": "KG", "phone": "+996"},
+    {"name": "Laos", "code": "LA", "phone": "+856"},
+    {"name": "Latvia", "code": "LV", "phone": "+371"},
+    {"name": "Lebanon", "code": "LB", "phone": "+961"},
+    {"name": "Lesotho", "code": "LS", "phone": "+266"},
+    {"name": "Liberia", "code": "LR", "phone": "+231"},
+    {"name": "Libya", "code": "LY", "phone": "+218"},
+    {"name": "Liechtenstein", "code": "LI", "phone": "+423"},
+    {"name": "Lithuania", "code": "LT", "phone": "+370"},
+    {"name": "Luxembourg", "code": "LU", "phone": "+352"},
+    {"name": "Madagascar", "code": "MG", "phone": "+261"},
+    {"name": "Malawi", "code": "MW", "phone": "+265"},
+    {"name": "Maldives", "code": "MV", "phone": "+960"},
+    {"name": "Mali", "code": "ML", "phone": "+223"},
+    {"name": "Malta", "code": "MT", "phone": "+356"},
+    {"name": "Marshall Islands", "code": "MH", "phone": "+692"},
+    {"name": "Mauritania", "code": "MR", "phone": "+222"},
+    {"name": "Mauritius", "code": "MU", "phone": "+230"},
+    {"name": "Mexico", "code": "MX", "phone": "+52"},
+    {"name": "Micronesia", "code": "FM", "phone": "+691"},
+    {"name": "Moldova", "code": "MD", "phone": "+373"},
+    {"name": "Monaco", "code": "MC", "phone": "+377"},
+    {"name": "Mongolia", "code": "MN", "phone": "+976"},
+    {"name": "Montenegro", "code": "ME", "phone": "+382"},
+    {"name": "Morocco", "code": "MA", "phone": "+212"},
+    {"name": "Mozambique", "code": "MZ", "phone": "+258"},
+    {"name": "Myanmar (Burma)", "code": "MM", "phone": "+95"},
+    {"name": "Namibia", "code": "NA", "phone": "+264"},
+    {"name": "Nauru", "code": "NR", "phone": "+674"},
+    {"name": "Nepal", "code": "NP", "phone": "+977"},
+    {"name": "Netherlands", "code": "NL", "phone": "+31"},
+    {"name": "New Zealand", "code": "NZ", "phone": "+64"},
+    {"name": "Nicaragua", "code": "NI", "phone": "+505"},
+    {"name": "Niger", "code": "NE", "phone": "+227"},
+    {"name": "Nigeria", "code": "NG", "phone": "+234"},
+    {"name": "North Macedonia", "code": "MK", "phone": "+389"},
+    {"name": "Norway", "code": "NO", "phone": "+47"},
+    {"name": "Oman", "code": "OM", "phone": "+968"},
+    {"name": "Pakistan", "code": "PK", "phone": "+92"},
+    {"name": "Palau", "code": "PW", "phone": "+680"},
+    {"name": "Palestine", "code": "PS", "phone": "+970"},
+    {"name": "Panama", "code": "PA", "phone": "+507"},
+    {"name": "Papua New Guinea", "code": "PG", "phone": "+675"},
+    {"name": "Paraguay", "code": "PY", "phone": "+595"},
+    {"name": "Peru", "code": "PE", "phone": "+51"},
+    {"name": "Philippines", "code": "PH", "phone": "+63"},
+    {"name": "Poland", "code": "PL", "phone": "+48"},
+    {"name": "Portugal", "code": "PT", "phone": "+351"},
+    {"name": "Qatar", "code": "QA", "phone": "+974"},
+    {"name": "Romania", "code": "RO", "phone": "+40"},
+    {"name": "Russia", "code": "RU", "phone": "+7"},
+    {"name": "Rwanda", "code": "RW", "phone": "+250"},
+    {"name": "Saint Kitts and Nevis", "code": "KN", "phone": "+1-869"},
+    {"name": "Saint Lucia", "code": "LC", "phone": "+1-758"},
+    {"name": "Saint Vincent and the Grenadines", "code": "VC", "phone": "+1-784"},
+    {"name": "Samoa", "code": "WS", "phone": "+685"},
+    {"name": "San Marino", "code": "SM", "phone": "+378"},
+    {"name": "Sao Tome and Principe", "code": "ST", "phone": "+239"},
+    {"name": "Saudi Arabia", "code": "SA", "phone": "+966"},
+    {"name": "Senegal", "code": "SN", "phone": "+221"},
+    {"name": "Serbia", "code": "RS", "phone": "+381"},
+    {"name": "Seychelles", "code": "SC", "phone": "+248"},
+    {"name": "Sierra Leone", "code": "SL", "phone": "+232"},
+    {"name": "Singapore", "code": "SG", "phone": "+65"},
+    {"name": "Slovakia", "code": "SK", "phone": "+421"},
+    {"name": "Slovenia", "code": "SI", "phone": "+386"},
+    {"name": "Solomon Islands", "code": "SB", "phone": "+677"},
+    {"name": "Somalia", "code": "SO", "phone": "+252"},
+    {"name": "South Africa", "code": "ZA", "phone": "+27"},
+    {"name": "South Sudan", "code": "SS", "phone": "+211"},
+    {"name": "Spain", "code": "ES", "phone": "+34"},
+    {"name": "Sri Lanka", "code": "LK", "phone": "+94"},
+    {"name": "Sudan", "code": "SD", "phone": "+249"},
+    {"name": "Suriname", "code": "SR", "phone": "+597"},
+    {"name": "Sweden", "code": "SE", "phone": "+46"},
+    {"name": "Switzerland", "code": "CH", "phone": "+41"},
+    {"name": "Syria", "code": "SY", "phone": "+963"},
+    {"name": "Taiwan", "code": "TW", "phone": "+886"},
+    {"name": "Tajikistan", "code": "TJ", "phone": "+992"},
+    {"name": "Tanzania", "code": "TZ", "phone": "+255"},
+    {"name": "Thailand", "code": "TH", "phone": "+66"},
+    {"name": "Timor-Leste", "code": "TL", "phone": "+670"},
+    {"name": "Togo", "code": "TG", "phone": "+228"},
+    {"name": "Tonga", "code": "TO", "phone": "+676"},
+    {"name": "Trinidad and Tobago", "code": "TT", "phone": "+1-868"},
+    {"name": "Tunisia", "code": "TN", "phone": "+216"},
+    {"name": "Turkey", "code": "TR", "phone": "+90"},
+    {"name": "Turkmenistan", "code": "TM", "phone": "+993"},
+    {"name": "Tuvalu", "code": "TV", "phone": "+688"},
+    {"name": "Uganda", "code": "UG", "phone": "+256"},
+    {"name": "Ukraine", "code": "UA", "phone": "+380"},
+    {"name": "United Arab Emirates", "code": "AE", "phone": "+971"},
+    {"name": "United Kingdom", "code": "GB", "phone": "+44"},
+    {"name": "United States", "code": "US", "phone": "+1"},
+    {"name": "Uruguay", "code": "UY", "phone": "+598"},
+    {"name": "Uzbekistan", "code": "UZ", "phone": "+998"},
+    {"name": "Vanuatu", "code": "VU", "phone": "+678"},
+    {"name": "Vatican City", "code": "VA", "phone": "+39-06"},
+    {"name": "Venezuela", "code": "VE", "phone": "+58"},
+    {"name": "Vietnam", "code": "VN", "phone": "+84"},
+    {"name": "Yemen", "code": "YE", "phone": "+967"},
+    {"name": "Zambia", "code": "ZM", "phone": "+260"},
+    {"name": "Zimbabwe", "code": "ZW", "phone": "+263"}
+  ];
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController phoneCodeController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserDetails(); // Call function to get user name from database
+  }
+
+  fetchUserDetails() async {
+    if (user != null) {
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
+      DatabaseEvent event = await userRef.once();
+
+      if (event.snapshot.exists) {
+        setState(() {
+          nameController.text = event.snapshot.child("name").value.toString();
+          emailController.text = event.snapshot.child("email").value.toString();
+          phoneController.text = event.snapshot.child("phone").value.toString();
+          passwordController.text = event.snapshot.child("password").value.toString();
+          _selectedCountry = event.snapshot.child("phoneCode").value.toString();
+        });
+      } else {
+        print("User not found in database");
+      }
+    }
+  }
+
+  // 🔹 Function to update user details in Firebase
+  void updateUserDetails() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
+
+      // Update Authentication email
+      await user.updateEmail(emailController.text);
+
+      // Update Authentication password
+      await user.updatePassword(passwordController.text);
+
+      // Update Realtime Database
+      await userRef.update({
+        "name": nameController.text,
+        "email": emailController.text,
+        "phone": phoneController.text,
+        "phoneCode": _selectedCountry,
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profile updated successfully!")),
+      );
+
+      // ✅ Navigate to Profile Page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Profile()), // Change to your profile page widget
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    }
+  }
+
+  void _showCountryPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CountryPickerDialog(
+          countries: _countries,
+          onSelected: (String selected) {
+            setState(() {
+              _selectedCountry = selected;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Update Account Details"),
+        backgroundColor: Color(0xFF0816A7),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              height: 800,
+              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 30,
+                    top: 29,
+                    child: Text(
+                      'Name:',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontFamily: 'Irish Grover',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 64,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 351,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: 1),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                          textAlignVertical: TextAlignVertical.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 120,
+                    child: Text(
+                      'Password:',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontFamily: 'Irish Grover',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 155,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 351,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: 1),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        alignment: Alignment.center,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: passwordController,
+                                obscureText: _obscureText,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                style: TextStyle(fontSize: 16, color: Colors.black),
+                                textAlignVertical: TextAlignVertical.center,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _obscureText = !_obscureText;
+                                });
+                              },
+                              child: Icon(
+                                _obscureText ? Icons.visibility_off : Icons.visibility,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 211,
+                    child: Text(
+                      'Email:',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontFamily: 'Irish Grover',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 246,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 351,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: 1),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: emailController,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                          textAlignVertical: TextAlignVertical.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 302,
+                    child: Text(
+                      'Phone Number:',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontFamily: 'Irish Grover',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 30,
+                    top: 337,
+                    child: GestureDetector(
+                      onTap: () => _showCountryPicker(context),
+                      child: Container(
+                        width: 100,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: 1),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _selectedCountry,
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 145,
+                    top: 337,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 235,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.black, width: 1),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                          textAlignVertical: TextAlignVertical.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 160,
+                    top: 410,
+                    child: MaterialButton(
+                      color: Colors.green,
+                      textColor: Colors.white,
+                      child: Text("Update"),
+                      onPressed: updateUserDetails,
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+}
+
+class CountryPickerDialog extends StatefulWidget {
+  final List<Map<String, String>> countries;
+  final Function(String) onSelected;
+
+  CountryPickerDialog({required this.countries, required this.onSelected});
+
+  @override
+  _CountryPickerDialogState createState() => _CountryPickerDialogState();
+}
+
+class _CountryPickerDialogState extends State<CountryPickerDialog> {
+  String searchQuery = "";
+
+  @override
+  Widget build(BuildContext context) {
+    List<Map<String, String>> filteredCountries = widget.countries
+        .where((country) =>
+    country["name"]!.toLowerCase().contains(searchQuery.toLowerCase()) ||
+        country["phone"]!.contains(searchQuery))
+        .toList();
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Container(
+        height: 400,
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search country name...",
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            SizedBox(height: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredCountries.length,
+                itemBuilder: (context, index) {
+                  var country = filteredCountries[index];
+                  return ListTile(
+                    title: Text("${country["name"]} (${country["code"]})"),
+                    subtitle: Text("Phone: ${country["phone"]}"),
+                    onTap: () {
+                      widget.onSelected(country["phone"]!);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

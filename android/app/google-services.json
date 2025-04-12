@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "750568793950",
+    "firebase_url": "https://localquest-54672-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "localquest-54672",
+    "storage_bucket": "localquest-54672.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:750568793950:android:c8835502c536b6a0c811cf",
+        "android_client_info": {
+          "package_name": "com.example.localquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACow-LYENE_a83CFUA-kB5bW1grV4DKY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
