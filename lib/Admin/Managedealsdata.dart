@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:localquest/Admin/Adminpage.dart';
 import 'package:localquest/Admin/DealsNew.dart';
 
 @override
 void AddNew(BuildContext ctx) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
     return Dealsnew();
+  }));
+}
+
+void Home(BuildContext ctx) {
+  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+    return Adminpage();
   }));
 }
 
@@ -18,8 +25,14 @@ class ManagedealsdataState extends State<Managedealsdata> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Manage Deals Data"),
+        title: Text("Deals Data"),
         actions: [
+          IconButton(
+            icon: Icon(Icons.home_filled),
+            onPressed: () {
+              Home(context);
+            },
+          ),
           IconButton(
             icon: Icon(Icons.add), // Change to any icon you want
             onPressed: () {

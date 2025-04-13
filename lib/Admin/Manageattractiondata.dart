@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:localquest/Admin/Adminpage.dart';
 import 'package:localquest/Admin/AttractionEdit.dart';
 import 'package:localquest/Admin/AttractionNew.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -6,6 +7,12 @@ import 'package:firebase_database/firebase_database.dart';
 void AddNew(BuildContext ctx) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
     return AttractionNew();
+  }));
+}
+
+void Home(BuildContext ctx) {
+  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+    return Adminpage();
   }));
 }
 
@@ -26,6 +33,8 @@ class ManageattractiondataState extends State<Manageattractiondata> {
   List<Map<String, dynamic>> filteredAttractions = []; // Added this line
   bool isLoading = true;
   TextEditingController searchController = TextEditingController();
+  int maxVisiblePrices = 3;
+  bool showAllPrices = false;
 
   @override
   void initState() {
@@ -43,7 +52,7 @@ class ManageattractiondataState extends State<Manageattractiondata> {
   void _filterAttractions() {
     final query = searchController.text.toLowerCase();
 
-    setState(() {
+    setState(() {    //Search based on...
       filteredAttractions = attractions.where((attraction) {
         final name = attraction['name']?.toString().toLowerCase() ?? '';
         final address = attraction['address']?.toString().toLowerCase() ?? '';
@@ -53,6 +62,7 @@ class ManageattractiondataState extends State<Manageattractiondata> {
             ? (attraction['type'] as List).join(', ').toLowerCase()
             : '';
         final description = attraction['description']?.toString().toLowerCase() ?? '';
+
 
         return name.contains(query) ||
             address.contains(query) ||
@@ -155,8 +165,14 @@ class ManageattractiondataState extends State<Manageattractiondata> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Manage Attraction Data"),
+        title: Text("Attraction Data"),
         actions: [
+          IconButton(
+            icon: Icon(Icons.home_filled),
+            onPressed: () {
+              Home(context);
+            },
+          ),
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () {
@@ -169,16 +185,26 @@ class ManageattractiondataState extends State<Manageattractiondata> {
         children: [
           Padding(
             padding: EdgeInsets.all(16),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search attractions...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search attractions...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  ),
                 ),
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              ),
+                SizedBox(height: 8),
+                Text(
+                  'Total items: ${filteredAttractions.length}',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -315,14 +341,15 @@ class ManageattractiondataState extends State<Manageattractiondata> {
                               ],
                             ),
                             SizedBox(height: 8),
-                            if (pricing.isNotEmpty) ...[
+
+                            if (pricing.isNotEmpty) ...[  //Pricing
                               Text(
                                 'Pricing:',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 4),
                               Column(
-                                children: pricing.map((priceItem) {
+                                children: (showAllPrices ? pricing : pricing.take(maxVisiblePrices)).map((priceItem) {
                                   return Padding(
                                     padding: EdgeInsets.only(bottom: 4),
                                     child: Row(
@@ -346,6 +373,18 @@ class ManageattractiondataState extends State<Manageattractiondata> {
                                   );
                                 }).toList(),
                               ),
+                              if (pricing.length > maxVisiblePrices && !showAllPrices)
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        showAllPrices = true;
+                                      });
+                                    },
+                                    child: Text('See More'),
+                                  ),
+                                ),
                               SizedBox(height: 8),
                             ],
                             Text(
