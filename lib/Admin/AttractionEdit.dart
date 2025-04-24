@@ -386,7 +386,7 @@ class _AttractionEditState extends State<AttractionEdit> {
                 ),
                 items: [
                   "Johor", "Kedah", "Kelantan", "Kuala Lumpur",
-                  "Labuan", "Melaka", "Negeri Sembilan", "Pahang",
+                  "Labuan", "Malacca", "Negeri Sembilan", "Pahang",
                   "Penang", "Perak", "Perlis", "Putrajaya",
                   "Sabah", "Sarawak", "Selangor", "Terengganu"
                 ].map((String state) {
