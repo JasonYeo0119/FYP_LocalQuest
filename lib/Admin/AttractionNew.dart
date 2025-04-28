@@ -1,7 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:localquest/Admin/Manageattractiondata.dart';
-import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
@@ -413,20 +412,6 @@ class AttractionNewState extends State<AttractionNew> {
                 }).toList(),
               ),
               SizedBox(height: 24),
-
-              // // Show selected types
-              // selectedtypeofattraction.isNotEmpty
-              //     ? Container(
-              //   padding: EdgeInsets.symmetric(vertical: 8),
-              //   child: Wrap(
-              //     spacing: 8,
-              //     children: selectedtypeofattraction.map((type) => Chip(
-              //       label: Text(type),
-              //       backgroundColor: Colors.blue.withOpacity(0.2),
-              //     )).toList(),
-              //   ),
-              // )
-              //     : Container(),
 
               // Dynamic Remarks and Prices
               Column(

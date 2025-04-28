@@ -31,7 +31,8 @@ class MyApp extends StatelessWidget {
         body: ListView(children: [
           SizedBox(
             height: MediaQuery.of(context).size.height,  // or any specific height
-            child: Login(),
+            //child: Login(),
+            child: Adminpage(),
           ),
         ]),
       ),
