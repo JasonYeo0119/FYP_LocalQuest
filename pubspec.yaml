@@ -88,6 +88,7 @@ flutter:
   - lib/Image/sarawak.png
   - lib/Image/selangor.png
   - lib/Image/terengganu.png
+  - lib/Image/happynewyear.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

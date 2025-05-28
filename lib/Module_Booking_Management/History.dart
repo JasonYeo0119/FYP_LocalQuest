@@ -45,66 +45,92 @@ class _HistoryState extends State<History> {
         title: Text("My Trips"),
         backgroundColor: Color(0xFF0816A7),
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 727,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
-                children: [
-                  Positioned(  //Search bar
-                    left: 17,
-                    top: 20,
-                    child: Material(  // Wrap with Material
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 375,
-                        height: 35,
-                        decoration: ShapeDecoration(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                        ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: "Search",
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                        ),
-                      ),
-                    ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Search bar
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(width: 1),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search",
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   ),
-                ],
+                  style: TextStyle(fontSize: 14, color: Colors.black),
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+
+              // Booking Card
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Booking Number: 3X42GJ9",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Attraction: Aquaria KLCC ticket in Kuala Lumpur",
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Visit Date: 6/6/2025",
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          // TODO: Navigate to QR Code screen or show dialog
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text("QR Code Viewer coming soon!"),
+                          ));
+                        },
+                        child: Text(
+                          "Click to view QR code",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                            fontSize: 15,
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: Colors.black,
-          border: Border(
-            top: BorderSide(color: Colors.black, width: 0.5), // Top border
-          ),
+          border: Border(top: BorderSide(color: Colors.black, width: 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(  // Wrap in GestureDetector for navigation
+            GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Favourite()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Favourite()));
               },
-              child: Column(  //Saved
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.favorite, color: Colors.white),
@@ -114,12 +140,9 @@ class _HistoryState extends State<History> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => History()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => History()));
               },
-              child: Column(  //Mytrips
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.shopping_bag, color: Color(0xFF0816A7)),
@@ -129,12 +152,9 @@ class _HistoryState extends State<History> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Homepage()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
               },
-              child: Column(  //Home
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.home, color: Colors.white),
@@ -144,12 +164,9 @@ class _HistoryState extends State<History> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Location()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Location()));
               },
-              child: Column(  //Attraction
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.park, color: Colors.white),
@@ -159,12 +176,9 @@ class _HistoryState extends State<History> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Profile()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
               },
-              child: Column(  //Profile
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.person, color: Colors.white),

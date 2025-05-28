@@ -578,28 +578,26 @@ class _HotelEditState extends State<HotelEdit> {
 
               SizedBox(height: 24),
 
-              // Amenities
-              Text(
-                "Amenities",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
-              MultiSelectDialogField(
-                items: amenitiesList.map((item) => MultiSelectItem(item, item)).toList(),
-                title: Text("Select Amenities"),
-                selectedColor: Colors.blue,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                buttonIcon: Icon(Icons.arrow_drop_down),
-                buttonText: Text("Select Amenities"),
-                initialValue: selectedAmenities,
-                onConfirm: (values) {
-                  setState(() {
-                    selectedAmenities = values.cast<String>();
-                  });
-                },
+              // Amenities selection
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: amenitiesList.map((type) {
+                  bool isSelected = selectedAmenities.contains(type);
+                  return FilterChip(
+                    label: Text(type),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          selectedAmenities.add(type);
+                        } else {
+                          selectedAmenities.remove(type);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
               ),
               SizedBox(height: 24),
 

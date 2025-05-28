@@ -38,7 +38,7 @@ class AdminpageState extends State<Adminpage> {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => Managehoteldata()));
                   break;
                 case 1:
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => Managetransportdata()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ManageTransportData()));
                   break;
                 case 2:
                   Navigator.push(context, MaterialPageRoute(builder: (context) => Manageattractiondata()));
