@@ -3,56 +3,140 @@ import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/Searchresult.dart';
-
-@override
-void Search(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Searchresult();
-  }));
-}
-
-@override
-void Allinone(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingallinone();
-  }));
-}
-
-@override
-void Transport(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingtransportmain();
-  }));
-}
-
-@override
-void Attraction(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingattractionmain();
-  }));
-}
+// Add these imports for hotel search functionality
+import '../Model/hotel.dart';
+import '../services/mock_hotel_service.dart';
+import '../widgets/hotel_card.dart';
+import 'Hoteldetails.dart';
 
 class Bookinghotelmain extends StatefulWidget {
   @override
   _BookinghotelmainState createState() => _BookinghotelmainState();
 }
 
-
 class _BookinghotelmainState extends State<Bookinghotelmain> {
+  // Existing controllers
   TextEditingController _checkInController = TextEditingController();
   TextEditingController _checkOutController = TextEditingController();
 
+  // New controller for location search
+  TextEditingController _locationController = TextEditingController();
+
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
-  int? selectedAdults; // Initially null for hint text
-  int? selectedChildren; // Initially null for hint text
+  int? selectedAdults;
+  int? selectedChildren;
+
+  // Loading state for search
+  bool _isLoading = false;
+
+  // Missing variables for search results
+  bool _showResults = false;
+  List<Hotel> _searchResults = [];
+  String _errorMessage = '';
+
+  // Navigation methods
+  void Search(BuildContext ctx) {
+    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+      return Searchresult();
+    }));
+  }
+
+  void Allinone(BuildContext ctx) {
+    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+      return Bookingallinone();
+    }));
+  }
+
+  void Transport(BuildContext ctx) {
+    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+      return Bookingtransportmain();
+    }));
+  }
+
+  void Attraction(BuildContext ctx) {
+    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+      return Bookingattractionmain();
+    }));
+  }
+
+  Future<void> _searchHotels() async {
+    // Validate form before searching
+    if (_locationController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please enter a destination")),
+      );
+      return;
+    }
+
+    if (_checkInDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select check-in date")),
+      );
+      return;
+    }
+
+    if (_checkOutDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select check-out date")),
+      );
+      return;
+    }
+
+    if (selectedAdults == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select number of adults")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final hotels = await MockMalaysiaHotelService.searchHotels(
+        destination: _locationController.text,
+      );
+
+      setState(() {
+        _isLoading = false;
+        _searchResults = hotels;
+        _showResults = true;
+      });
+
+      // Navigate to search results page with the found hotels
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HotelSearchResultsScreen(
+            hotels: hotels,
+            destination: _locationController.text,
+            checkInDate: _checkInDate!,
+            checkOutDate: _checkOutDate!,
+            adults: selectedAdults!,
+            children: selectedChildren ?? 0,
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to search hotels. Please try again.';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to search hotels. Please try again.')),
+      );
+    }
+  }
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller, bool isCheckIn) async {
     DateTime today = DateTime.now();
     DateTime initialDate = today;
 
     if (!isCheckIn && _checkInDate != null) {
-      // Check-Out must be after Check-In
       initialDate = _checkInDate!.add(Duration(days: 1));
     }
 
@@ -69,14 +153,12 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
           _checkInDate = pickedDate;
           _checkInController.text = "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
 
-          // Reset Check-Out if it's now before Check-In
           if (_checkOutDate != null && _checkOutDate!.isBefore(_checkInDate!)) {
             _checkOutController.clear();
             _checkOutDate = null;
           }
         } else {
           if (_checkInDate != null && pickedDate.isBefore(_checkInDate!)) {
-            // Show error if Check-Out is earlier than Check-In
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Check-Out date must be after Check-In date.")),
             );
@@ -89,12 +171,63 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
     }
   }
 
+  void _onDestinationTap(String destination) {
+    _locationController.text = destination;
+  }
+
+  void _navigateToHotelDetails(Hotel hotel) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HotelDetailsScreen(hotel: hotel),
+      ),
+    );
+  }
+
+  Widget _buildPopularDestinations() {
+    final destinations = MockMalaysiaHotelService.getPopularDestinations();
+
+    return Container(
+      margin: EdgeInsets.only(top: 250, left: 10, right: 10),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.deepOrange, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Popular Destinations in Malaysia',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: destinations.map((destination) {
+              return ActionChip(
+                label: Text(destination),
+                onPressed: () => _onDestinationTap(destination),
+                backgroundColor: Colors.deepOrange.withOpacity(0.1),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("All Rooms"),
-        backgroundColor: Colors.transparent, // Make AppBar background transparent
+        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -104,17 +237,17 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
             ),
           ),
         ),
-        ),
-      body: SingleChildScrollView( // Prevents overflow issues
+      ),
+      body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               width: double.infinity,
-              height: 790,
+              height: _showResults ? 1200 : 790, // Adjust height based on results
               decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
               child: Stack(
                 children: [
-                  Positioned(  //Whitebackground
+                  Positioned(
                     left: 10,
                     top: 20,
                     child: Container(
@@ -125,42 +258,43 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
-                            color: Colors.deepOrange, // Border color
-                            width: 2, // Border thickness
+                            color: Colors.deepOrange,
+                            width: 2,
                           ),
                         ),
                       ),
                     ),
                   ),
-                  Positioned(   //Locationname
+                  Positioned(
                     left: 25,
                     top: 43,
                     child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
+                      color: Colors.transparent,
                       child: Container(
                         width: 359,
                         height: 35,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
+                          borderRadius: BorderRadius.circular(5),
                           border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
                         alignment: Alignment.center,
                         child: TextField(
+                          controller: _locationController, // Updated controller
                           decoration: InputDecoration(
                             hintText: 'Where do you want to go?',
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
                           style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
+                          textAlignVertical: TextAlignVertical.center,
                         ),
                       ),
                     ),
                   ),
-                  Positioned(  //datein
+                  Positioned(
                     left: 25,
                     top: 89,
                     child: Material(
@@ -177,7 +311,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                         alignment: Alignment.center,
                         child: TextField(
                           controller: _checkInController,
-                          readOnly: true, // Prevent manual input
+                          readOnly: true,
                           onTap: () => _selectDate(context, _checkInController, true),
                           decoration: InputDecoration(
                             hintText: 'Check In',
@@ -191,7 +325,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //dateout
+                  Positioned(
                     left: 212,
                     top: 89,
                     child: Material(
@@ -208,7 +342,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                         alignment: Alignment.center,
                         child: TextField(
                           controller: _checkOutController,
-                          readOnly: true, // Prevent manual input
+                          readOnly: true,
                           onTap: () => _selectDate(context, _checkOutController, false),
                           decoration: InputDecoration(
                             hintText: 'Check Out',
@@ -222,19 +356,19 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Numofadult
+                  Positioned(
                     left: 25,
                     top: 134,
                     child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
+                      color: Colors.transparent,
                       child: Container(
                         width: 170,
                         height: 35,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
+                          borderRadius: BorderRadius.circular(5),
                           border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
+                        ),
                         padding: EdgeInsets.symmetric(horizontal: 1),
                         alignment: Alignment.center,
                         child: DropdownButtonHideUnderline(
@@ -251,7 +385,6 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                               });
                             },
                             items: [
-                              // Hint item (not selectable)
                               DropdownMenuItem<int>(
                                 value: null,
                                 child: Text(
@@ -259,7 +392,6 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                                   style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
                                 ),
                               ),
-                              // Actual options (1-20)
                               ...List.generate(20, (index) => index + 1).map((int value) {
                                 return DropdownMenuItem<int>(
                                   value: value,
@@ -275,19 +407,19 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Numofchildren
+                  Positioned(
                     left: 212,
                     top: 134,
                     child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
+                      color: Colors.transparent,
                       child: Container(
                         width: 170,
                         height: 35,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
+                          borderRadius: BorderRadius.circular(5),
                           border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
+                        ),
                         padding: EdgeInsets.symmetric(horizontal: 1),
                         alignment: Alignment.center,
                         child: DropdownButtonHideUnderline(
@@ -295,7 +427,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                             value: selectedChildren,
                             dropdownColor: Colors.white,
                             hint: Text(
-                              'Number of Adult(s)',
+                              'Number of Children', // Fixed hint text
                               style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
                             ),
                             onChanged: (int? newValue) {
@@ -304,7 +436,6 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                               });
                             },
                             items: [
-                              // Hint item (not selectable)
                               DropdownMenuItem<int>(
                                 value: null,
                                 child: Text(
@@ -312,8 +443,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                                   style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
                                 ),
                               ),
-                              // Actual options (1-20)
-                              ...List.generate(10, (index) => index + 1).map((int value) {
+                              ...List.generate(11, (index) => index).map((int value) {
                                 return DropdownMenuItem<int>(
                                   value: value,
                                   child: Text(
@@ -328,18 +458,20 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Searchbutton
+                  Positioned(
                     left: 129,
                     top: 187,
                     child: GestureDetector(
-                      onTap: () {
-                        Search(context);
-                      },
+                      onTap: _isLoading ? null : _searchHotels, // Disable when loading
                       child: Container(
                         width: 151,
                         height: 32,
                         decoration: ShapeDecoration(
-                          gradient: LinearGradient(
+                          gradient: _isLoading
+                              ? LinearGradient(
+                            colors: [Colors.grey, Colors.grey.shade300],
+                          )
+                              : LinearGradient(
                             begin: Alignment(1.00, 0.00),
                             end: Alignment(-1, 0),
                             colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
@@ -357,29 +489,47 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                             )
                           ],
                         ),
+                        child: _isLoading
+                            ? Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        )
+                            : null,
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: 180,
-                    top: 193,
-                    child: GestureDetector(
-                      onTap: () {
-                        Search(context);
-                      },
-                      child: Text(
-                        'Search',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
+                  if (!_isLoading)
+                    Positioned(
+                      left: 180,
+                      top: 193,
+                      child: GestureDetector(
+                        onTap: _searchHotels,
+                        child: Text(
+                          'Search',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     ),
+                  // Popular destinations section
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    child: _buildPopularDestinations(),
                   ),
-                  Positioned(  //Orangeroundbutton
+                  Positioned(
                     left: 38,
                     top: 678,
                     child: Container(
@@ -403,7 +553,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //hotel icon
+                  Positioned(
                     left: 45,
                     top: 684,
                     child: IconButton(
@@ -417,7 +567,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       },
                     ),
                   ),
-                  Positioned(  //Purpleroundbutton
+                  Positioned(
                     left: 126,
                     top: 678,
                     child: GestureDetector(
@@ -442,11 +592,11 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Transport icon
+                  Positioned(
                     left: 133,
                     top: 687,
                     child: Opacity(
-                      opacity: 0.3, // Sets the opacity to 30%
+                      opacity: 0.3,
                       child: IconButton(
                         icon: Icon(Icons.directions_train_outlined, color: Colors.black),
                         iconSize: 40,
@@ -459,7 +609,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Blueroundicon
+                  Positioned(
                     left: 214,
                     top: 677,
                     child: GestureDetector(
@@ -484,11 +634,11 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Attraction icon
+                  Positioned(
                     left: 221,
                     top: 683,
                     child: Opacity(
-                      opacity: 0.3, // Sets the opacity to 30%
+                      opacity: 0.3,
                       child: IconButton(
                         icon: Icon(Icons.park_outlined, color: Colors.black),
                         iconSize: 40,
@@ -501,7 +651,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Greenroundbutton
+                  Positioned(
                     left: 302,
                     top: 678,
                     child: GestureDetector(
@@ -526,11 +676,11 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
                       ),
                     ),
                   ),
-                  Positioned(  //Allinone icon
+                  Positioned(
                     left: 309,
                     top: 686,
                     child: Opacity(
-                      opacity: 0.3, // Sets the opacity to 30%
+                      opacity: 0.3,
                       child: IconButton(
                         icon: Icon(Icons.dashboard_outlined, color: Colors.black),
                         iconSize: 40,
@@ -548,6 +698,102 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Create the missing HotelSearchResultsScreen class
+class HotelSearchResultsScreen extends StatelessWidget {
+  final List<Hotel> hotels;
+  final String destination;
+  final DateTime checkInDate;
+  final DateTime checkOutDate;
+  final int adults;
+  final int children;
+
+  const HotelSearchResultsScreen({
+    Key? key,
+    required this.hotels,
+    required this.destination,
+    required this.checkInDate,
+    required this.checkOutDate,
+    required this.adults,
+    required this.children,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Hotels in $destination'),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
+            ),
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            color: Colors.grey[100],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$destination',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${checkInDate.day}/${checkInDate.month}/${checkInDate.year} - ${checkOutDate.day}/${checkOutDate.month}/${checkOutDate.year}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                Text(
+                  '$adults Adults${children > 0 ? ', $children Children' : ''}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: hotels.isEmpty
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.hotel_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No hotels found',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
+              itemCount: hotels.length,
+              itemBuilder: (context, index) {
+                return HotelCard(
+                  hotel: hotels[index],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HotelDetailsScreen(hotel: hotels[index]),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

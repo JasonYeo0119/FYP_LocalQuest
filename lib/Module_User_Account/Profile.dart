@@ -34,7 +34,7 @@ void Attractionlist(BuildContext ctx) {
 @override
 void Faq(BuildContext ctx) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Chatbotpage();
+    return ChatbotPage();
   }));
 }
 
@@ -412,7 +412,7 @@ class _ProfileState extends State<Profile> {
                         Faq(context);
                       },
                       child: Text(
-                        'Frequent Asked Questions (FAQ)',
+                        'Chat with AI Chatbot',
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 16,

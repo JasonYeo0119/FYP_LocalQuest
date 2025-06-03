@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color.fromARGB(255, 18, 32, 47),
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: Scaffold(
         body: ListView(children: [

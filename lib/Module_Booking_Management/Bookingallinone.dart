@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
-import 'package:localquest/Module_Booking_Management/Bookinghotelmain.dart';
+import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/Searchresult.dart';
 

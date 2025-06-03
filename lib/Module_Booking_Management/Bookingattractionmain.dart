@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
-import 'package:localquest/Module_Booking_Management/Bookinghotelmain.dart';
+import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
 import 'package:localquest/Module_Booking_Management/Searchresult.dart';
