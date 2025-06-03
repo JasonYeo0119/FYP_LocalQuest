@@ -1,21 +1,22 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:localquest/Homepage.dart';
-import 'package:localquest/Module_User_Account/Signup.dart';
+import 'package:localquest/Module_User_Account/Login.dart';
 
 @override
 void toHomepage(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+  Navigator.of(ctx).pushReplacement(MaterialPageRoute(builder: (_) {
     return Homepage();
   }));
 }
 
 @override
-void toSignup(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Signup();
+void toLogin(BuildContext ctx) {
+  Navigator.of(ctx).pushReplacement(MaterialPageRoute(builder: (_) {
+    return Login();
   }));
 }
 
@@ -25,63 +26,140 @@ class Verification extends StatefulWidget {
 }
 
 class _VerificationState extends State<Verification> {
-  int _secondsRemaining = 60; // Start at 60 seconds
-  bool _isButtonDisabled = true;
-  Timer? _timer;
+  bool isEmailVerified = false;
+  bool canResendEmail = false;
+  Timer? timer;
+  int resendTimer = 60;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
-  }
 
-  void _startCountdown() {
-    setState(() {
-      _isButtonDisabled = true;
-      _secondsRemaining = 60;
-    });
+    // Check if user is logged in
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // If no user is logged in, go back to login
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Login()),
+        );
+      });
+      return;
+    }
 
-    _timer?.cancel(); // Ensure any previous timer is canceled
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_secondsRemaining > 0) {
-        setState(() {
-          _secondsRemaining--;
-        });
-      } else {
-        timer.cancel();
-        setState(() {
-          _isButtonDisabled = false;
-        });
-      }
-    });
-  }
+    // Check if email is already verified
+    isEmailVerified = user.emailVerified;
 
-  void _resendOTP() {
-    if (_isButtonDisabled) return;
+    if (!isEmailVerified) {
+      sendVerificationEmail();
 
-    // TODO: Implement OTP resend logic here
-    print("OTP Resent!");
+      // Start the resend timer
+      startResendTimer();
 
-    _startCountdown(); // Restart the countdown when clicked
+      // Check email verification status every 3 seconds
+      timer = Timer.periodic(
+        Duration(seconds: 3),
+            (_) => checkEmailVerified(),
+      );
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    timer?.cancel();
     super.dispose();
+  }
+
+  void startResendTimer() {
+    setState(() {
+      canResendEmail = false;
+      resendTimer = 60;
+    });
+
+    Timer.periodic(Duration(seconds: 1), (timer) {
+      if (resendTimer > 0) {
+        setState(() {
+          resendTimer--;
+        });
+      } else {
+        setState(() {
+          canResendEmail = true;
+        });
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> checkEmailVerified() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Reload user to get latest verification status
+    await user.reload();
+
+    setState(() {
+      isEmailVerified = user.emailVerified;
+    });
+
+    if (isEmailVerified) {
+      timer?.cancel();
+
+      // Update verification status in database
+      await FirebaseDatabase.instance
+          .ref()
+          .child('Users')
+          .child(user.uid)
+          .update({'emailVerified': true});
+
+      // Show success message and navigate to homepage
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Email verified successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Homepage()),
+      );
+    }
+  }
+
+  Future<void> sendVerificationEmail() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.sendEmailVerification();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Verification email sent to ${user.email}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending verification email: ${e.toString()}')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    User? user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF0816A7),
-        automaticallyImplyLeading: false,  //Remove if want back button
+        automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            Container(  //background
+            Container(
               width: double.infinity,
               height: 787,
               decoration: BoxDecoration(color: Color(0xFF0816A7)),
@@ -94,9 +172,9 @@ class _VerificationState extends State<Verification> {
                       'LocalQuest',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.irishGrover(
-                          fontSize: 64,
-                          color:Colors.white,
-                          fontWeight: FontWeight.w400
+                        fontSize: 64,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -114,12 +192,12 @@ class _VerificationState extends State<Verification> {
                       ),
                     ),
                   ),
-                  Positioned( //Yellowsquarebox
+                  Positioned( // Yellow square box
                     left: 53,
                     top: 246,
                     child: Container(
                       width: 303,
-                      height: 246,
+                      height: 350,
                       decoration: ShapeDecoration(
                         color: Color(0xFF0816A7),
                         shape: RoundedRectangleBorder(
@@ -128,7 +206,7 @@ class _VerificationState extends State<Verification> {
                       ),
                     ),
                   ),
-                  Positioned(  //VerificationContainer
+                  Positioned( // Verification Container
                     left: 127,
                     top: 225,
                     child: Container(
@@ -151,11 +229,11 @@ class _VerificationState extends State<Verification> {
                             child: SizedBox(
                               width: 143.57,
                               child: Text(
-                                'Verification',
+                                'Email Verification',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 24,
+                                  fontSize: 20,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -168,97 +246,85 @@ class _VerificationState extends State<Verification> {
                   ),
                   Positioned(
                     left: 77,
-                    top: 272,
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'An ',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                              height: 1.50,
+                    top: 280,
+                    child: Container(
+                      width: 250,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'A verification email has been sent to:\n',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                height: 1.50,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: 'One-Time-Passcode (OTP)',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              height: 1.50,
+                            TextSpan(
+                              text: '${user?.email ?? "your email"}\n\n',
+                              style: TextStyle(
+                                color: Color(0xFFFFFF00),
+                                fontSize: 12,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                height: 1.50,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: ' has been sent\nto your email. Please enter the OTP to\ncomplete the verification process.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                              height: 1.50,
+                            TextSpan(
+                              text: 'Please check your email and click on the verification link to continue. This page will automatically redirect once your email is verified.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                height: 1.50,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 78,
-                    top: 339,
-                    child: Text(
-                      'Enter the OTP:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(  //OTPinput
-                    left: 77,
-                    top: 360,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 251,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
-                          keyboardType: TextInputType.number, // Allows only number input
-                          inputFormatters: <TextInputFormatter>[
-                            FilteringTextInputFormatter.digitsOnly, // Restricts input to digits (0-9)
                           ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  // Email verification status indicator
+                  Positioned(
+                    left: 160,
+                    top: 380,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      child: isEmailVerified
+                          ? Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 60,
+                      )
+                          : SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFFFFF00),
+                          strokeWidth: 3,
                         ),
                       ),
                     ),
                   ),
                   Positioned(
                     left: 79,
-                    top: 396,
+                    top: 490,
                     child: GestureDetector(
-                      onTap: _isButtonDisabled ? null : _resendOTP,
+                      onTap: canResendEmail ? () {
+                        sendVerificationEmail();
+                        startResendTimer();
+                      } : null,
                       child: Text(
-                        _isButtonDisabled ? "Resend OTP ($_secondsRemaining s)" : "Resend OTP",
+                        canResendEmail
+                            ? "Resend Verification Email"
+                            : "Resend Email (${resendTimer}s)",
                         style: TextStyle(
-                          color: _isButtonDisabled ? Colors.grey : Color(0xFFFFFF00),
+                          color: canResendEmail ? Color(0xFFFFFF00) : Colors.grey,
                           fontSize: 12,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
@@ -267,53 +333,44 @@ class _VerificationState extends State<Verification> {
                       ),
                     ),
                   ),
-                  Positioned(  //Submitbutton
-                    left: 157,
-                    top: 433,
+                  Positioned( // Check Status button
+                    left: 140,
+                    top: 520,
                     child: GestureDetector(
-                      onTap: () {
-                        toHomepage(context);
-                      },
+                      onTap: checkEmailVerified,
                       child: Container(
-                        width: 96,
-                        height: 30,
+                        width: 130,
+                        height: 35,
                         decoration: BoxDecoration(
                           color: Color(0xFFFFFF00),
                           border: Border.all(width: 1),
                           borderRadius: BorderRadius.circular(5),
                         ),
                         alignment: Alignment.center,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 181,
-                    top: 438,
-                    child: GestureDetector(
-                      onTap: () {
-                        toHomepage(context);
-                      },
-                      child: Text(
-                        'Submit',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
+                        child: Text(
+                          'Check Status',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   Positioned(
                     left: 133,
-                    top: 505,
+                    top: 570,
                     child: GestureDetector(
-                      onTap: () {
-                        toSignup(context);
+                      onTap: () async {
+                        // Sign out the user and go back to login
+                        await FirebaseAuth.instance.signOut();
+                        toLogin(context);
                       },
                       child: Text(
-                        'Back to Previous Page',
+                        'Back to Login',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,

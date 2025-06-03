@@ -4,308 +4,512 @@ import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:localquest/Module_User_Account/Updateprofiledetails.dart';
 
-
 class Profiledetails extends StatefulWidget {
   @override
   _ProfiledetailsState createState() => _ProfiledetailsState();
 }
 
 class _ProfiledetailsState extends State<Profiledetails> {
-
-  final user=FirebaseAuth.instance.currentUser;  //Retrieve current logged in user
-
-  bool _obscureText = true;
+  final user = FirebaseAuth.instance.currentUser;
+  bool _obscurePassword = true;
   String _selectedCountry = "";
+  bool _isLoading = true;
 
-  // Form controllers to hold the data
+  // Form controllers
   final TextEditingController name = TextEditingController();
   final TextEditingController email = TextEditingController();
   final TextEditingController number = TextEditingController();
   final TextEditingController password = TextEditingController();
-  final TextEditingController phoneCode = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    fetchUserDetails(); // Call function to get user name from database
+    fetchUserDetails();
   }
 
-  // 🔹 Fetch User Name from Firebase Realtime Database
-  fetchUserDetails() async {
-    if (user != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
-      DatabaseEvent event = await userRef.once(); // Get data once
+  Future<void> fetchUserDetails() async {
+    setState(() => _isLoading = true);
 
-      if (event.snapshot.exists) {
-        setState(() {
-          name.text = event.snapshot.child("name").value.toString();
-          email.text = event.snapshot.child("email").value.toString();
-          number.text = event.snapshot.child("phone").value.toString();
-          password.text = event.snapshot.child("password").value.toString();
-          _selectedCountry = event.snapshot.child("phoneCode").value.toString();
-        });
-      } else {
-          print("User not found in database");
-        };
+    if (user != null) {
+      try {
+        DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
+        DatabaseEvent event = await userRef.once();
+
+        if (event.snapshot.exists) {
+          setState(() {
+            name.text = event.snapshot.child("name").value?.toString() ?? '';
+            email.text = event.snapshot.child("email").value?.toString() ?? '';
+            number.text = event.snapshot.child("phone").value?.toString() ?? '';
+            password.text = event.snapshot.child("password").value?.toString() ?? '';
+            _selectedCountry = event.snapshot.child("phoneCode").value?.toString() ?? '+60';
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar("User profile not found");
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar("Failed to load profile: ${e.toString()}");
       }
     }
+  }
 
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Manage Account Details"),
-        backgroundColor: Color(0xFF0816A7),
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 800,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _showVerificationDialog(String changeType) async {
+    final TextEditingController currentPasswordController = TextEditingController();
+    bool obscurePassword = true;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
                 children: [
-                  Positioned(
-                    left: 30,
-                    top: 29,
-                    child: Text(
-                      'Name:',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
+                  Icon(Icons.security, color: Color(0xFF0816A7)),
+                  SizedBox(width: 12),
+                  Text('Verify Identity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'To change your $changeType, please enter your current password for security verification.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     ),
-                  ),
-                  Positioned(  //Name
-                    left: 30,
-                    top: 64,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: TextField(
-                          readOnly: true,
-                          controller: name,
-                          decoration: InputDecoration(
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
+                    SizedBox(height: 24),
+                    TextField(
+                      controller: currentPasswordController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Current Password',
+                        prefixIcon: Icon(Icons.lock_outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF0816A7), width: 2),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () {
+                            setState(() {
+                              obscurePassword = !obscurePassword;
+                            });
+                          },
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  Positioned(
-                    left: 30,
-                    top: 120,
-                    child: Text(
-                      'Password:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Password
-                    left: 30,
-                    top: 155,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                readOnly: true,
-                                controller: password,
-                                obscureText: _obscureText,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none, // Removes default TextField border
-                                  isDense: true, // Reduces TextField height to fit container
-                                  contentPadding: EdgeInsets.zero, // Aligns text properly
-                                ),
-                                style: TextStyle(fontSize: 16, color: Colors.black),
-                                textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _obscureText = !_obscureText;
-                                });
-                              },
-                              child: Icon(
-                                _obscureText ? Icons.visibility_off : Icons.visibility,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 211,
-                    child: Text(
-                      'Email:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Email
-                    left: 30,
-                    top: 246,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: TextField(
-                          readOnly: true,
-                          controller: email,
-                          decoration: InputDecoration(
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 302,
-                    child: Text(
-                      'Phone Number:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(  //CountryCode
-                    left: 30,
-                    top: 337,
-                    child: GestureDetector(
-                        child: Container(
-                          width: 100,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                            border: Border.all(color: Colors.black, width: 1),
-                          ),
-                          padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                          alignment: Alignment.center,
-                          child: Text(
-                            _selectedCountry,
-                            style: TextStyle(fontSize: 16, color: Colors.black),
-                          ),
-                        )
-                    ),
-                  ),
-                  Positioned(  //Numberbar
-                    left: 145,
-                    top: 337,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 235,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: TextField(
-                          readOnly: true,
-                          controller: number,
-                          keyboardType: TextInputType.number, // Sets numeric keyboard
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Allows only numbers
-                          decoration: InputDecoration(
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 160,
-                    top: 410,
-                    child: MaterialButton(
-                      color: Color(0xFF0816A7),
-                      textColor: Colors.white,
-                      child: Text("Edit"),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Updateprofiledetails(),
-                          ),
-                        );
-                      },
-                    ),
-                  )
+                  child: Text('Verify'),
+                  onPressed: () async {
+                    await _verifyPassword(currentPasswordController.text, changeType);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _verifyPassword(String currentPassword, String changeType) async {
+    if (currentPassword.isEmpty) {
+      _showErrorSnackBar("Please enter your current password");
+      return;
+    }
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF0816A7)),
+                  SizedBox(height: 16),
+                  Text('Verifying...'),
                 ],
               ),
             ),
+          ),
+        ),
+      );
+
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user!.email!,
+        password: currentPassword,
+      );
+
+      await user!.reauthenticateWithCredential(credential);
+
+      Navigator.of(context).pop(); // Close loading dialog
+      Navigator.of(context).pop(); // Close verification dialog
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Updateprofiledetails(
+            isVerified: true,
+            changeType: changeType,
+          ),
+        ),
+      );
+
+      _showSuccessSnackBar('Verification successful! You can now update your $changeType.');
+
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      _showErrorSnackBar('Verification failed. Please check your password.');
+    }
+  }
+
+  void _handleEdit() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'What would you like to edit?',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 24),
+            _buildEditOption(
+              icon: Icons.person_outline,
+              title: 'Name & Phone',
+              subtitle: 'Update your personal information',
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Updateprofiledetails(
+                      isVerified: true,
+                      changeType: 'basic_info',
+                    ),
+                  ),
+                );
+              },
+            ),
+            _buildEditOption(
+              icon: Icons.email_outlined,
+              title: 'Email Address',
+              subtitle: 'Change your email (requires verification)',
+              onTap: () {
+                Navigator.of(context).pop();
+                _showVerificationDialog('email');
+              },
+            ),
+            _buildEditOption(
+              icon: Icons.lock_outline,
+              title: 'Password',
+              subtitle: 'Update your password (requires verification)',
+              onTap: () {
+                Navigator.of(context).pop();
+                _showVerificationDialog('password');
+              },
+            ),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildEditOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Color(0xFF0816A7).withOpacity(0.1),
+          child: Icon(icon, color: Color(0xFF0816A7)),
+        ),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildProfileField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool isPassword = false,
+    bool isPhone = false,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: isPhone ? _buildPhoneField() : _buildRegularField(controller, icon, isPassword),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegularField(TextEditingController controller, IconData icon, bool isPassword) {
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      obscureText: isPassword ? _obscurePassword : false,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Color(0xFF0816A7)),
+        suffixIcon: isPassword
+            ? IconButton(
+          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+        )
+            : null,
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Row(
+      children: [
+        Container(
+          width: 100,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(right: BorderSide(color: Colors.grey[300]!)),
+          ),
+          child: Text(
+            _selectedCountry,
+            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+          ),
+        ),
+        Expanded(
+          child: TextField(
+            controller: number,
+            readOnly: true,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: Text("Profile Details", style: TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: Color(0xFF0816A7),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF0816A7)),
+            SizedBox(height: 16),
+            Text('Loading profile...', style: TextStyle(color: Colors.grey[600])),
+          ],
+        ),
+      )
+          : RefreshIndicator(
+        onRefresh: fetchUserDetails,
+        color: Color(0xFF0816A7),
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Profile Header
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Color(0xFF0816A7),
+                        child: Text(
+                          name.text.isNotEmpty ? name.text[0].toUpperCase() : 'U',
+                          style: TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        name.text.isEmpty ? 'User' : name.text,
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        email.text,
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: _handleEdit,
+                        icon: Icon(Icons.edit),
+                        label: Text('Edit Profile'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF0816A7),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Profile Information Card
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Color(0xFF0816A7)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Account Information',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      _buildProfileField(
+                        label: 'Full Name',
+                        controller: name,
+                        icon: Icons.person_outline,
+                      ),
+                      _buildProfileField(
+                        label: 'Email Address',
+                        controller: email,
+                        icon: Icons.email_outlined,
+                      ),
+                      _buildProfileField(
+                        label: 'Password',
+                        controller: password,
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                      ),
+                      _buildProfileField(
+                        label: 'Phone Number',
+                        controller: number,
+                        icon: Icons.phone_outlined,
+                        isPhone: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 100), // Extra space at bottom
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    // Clean up controllers when the widget is disposed
     name.dispose();
     email.dispose();
     number.dispose();
@@ -313,71 +517,3 @@ class _ProfiledetailsState extends State<Profiledetails> {
     super.dispose();
   }
 }
-
-class CountryPickerDialog extends StatefulWidget {
-  final List<Map<String, String>> countries;
-  final Function(String) onSelected;
-
-  CountryPickerDialog({required this.countries, required this.onSelected});
-
-  @override
-  _CountryPickerDialogState createState() => _CountryPickerDialogState();
-}
-
-class _CountryPickerDialogState extends State<CountryPickerDialog> {
-  String searchQuery = "";
-
-  @override
-  Widget build(BuildContext context) {
-    List<Map<String, String>> filteredCountries = widget.countries
-        .where((country) =>
-    country["name"]!.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        country["phone"]!.contains(searchQuery))
-        .toList();
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Container(
-        height: 400,
-        padding: EdgeInsets.all(10),
-        child: Column(
-          children: [
-            // Search Bar
-            TextField(
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: "Search country name...",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            SizedBox(height: 10),
-
-            // Country List
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredCountries.length,
-                itemBuilder: (context, index) {
-                  var country = filteredCountries[index];
-                  return ListTile(
-                    title: Text("${country["name"]} (${country["code"]})"),
-                    subtitle: Text("Phone: ${country["phone"]}"),
-                    onTap: () {
-                      widget.onSelected("${country["code"]} (${country["phone"]})");
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

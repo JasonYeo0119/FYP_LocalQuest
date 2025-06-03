@@ -38,32 +38,32 @@ class _PaymentState extends State<Payment> {
         });
       } else {
         _timer.cancel(); // Stop the timer when it reaches 0
-        showTimeoutDialog(); // Show alert when time runs out
+        // showTimeoutDialog(); // Show alert when time runs out
       }
     });
   }
 
-  void showTimeoutDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Prevents user from dismissing dialog
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Payment Timeout'),
-          content: Text('Your payment session has expired. Please go back and try again.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to previous page
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void showTimeoutDialog() {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false, // Prevents user from dismissing dialog
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: Text('Payment Timeout'),
+  //         content: Text('Your payment session has expired. Please go back and try again.'),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               Navigator.pop(context); // Close dialog
+  //               Navigator.pop(context); // Go back to previous page
+  //             },
+  //             child: Text('OK'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;

@@ -2,7 +2,6 @@ import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
-import 'package:localquest/Module_Booking_Management/Chat.dart';
 import 'package:localquest/Module_Booking_Management/History.dart';
 import 'package:localquest/Module_Booking_Management/Hotelsearchscreen.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
@@ -83,20 +82,6 @@ void ProfileIcon(BuildContext ctx) {
   }));
 }
 
-@override
-void Notification(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return NotificationPage();
-  }));
-}
-
-// @override
-// void Backuppage(BuildContext ctx) {
-//   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-//     return Backup();
-//   }));
-// }
-
 class Homepage extends StatefulWidget {
   @override
   _HomepageState createState() => _HomepageState();
@@ -117,14 +102,6 @@ class _HomepageState extends State<Homepage> {
         ),
         backgroundColor: Color(0xFF0816A7),
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications_outlined), // Change to any icon you want
-            onPressed: () {
-              Notification(context);
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView( // Prevents overflow issues
         child: Column(

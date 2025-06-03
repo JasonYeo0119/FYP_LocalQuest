@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
@@ -257,23 +259,43 @@ class _SignupState extends State<Signup> {
   @override
   signUp() async {
     try {
+      // Create user with Firebase Auth
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email.text,
         password: password.text,
       );
+
+      // Send email verification
+      await userCredential.user!.sendEmailVerification();
+
       String phoneCode = _selectedCountry.split('(')[1].replaceAll(')', '').trim();
+
       // Store user details in Firebase Realtime Database
-      dbRef.child(userCredential.user!.uid).set({
+      // Note: Don't store password in database for security reasons
+      await dbRef.child(userCredential.user!.uid).set({
         'name': name.text,
         'phone': number.text,
         'email': email.text,
         'uid': userCredential.user!.uid,
         'phoneCode': phoneCode,
-        'password': password.text,
+        'emailVerified': false, // Track email verification status
       });
 
-      // Navigate to Home Page
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Verification()));
+      // Show success message and navigate to verification page
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Account created successfully! Please check your email to verify your account."),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      // Navigate to email verification page
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => EmailVerificationPage(userEmail: email.text))
+      );
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Signup Failed: ${e.toString()}")),
@@ -662,21 +684,21 @@ class _SignupState extends State<Signup> {
                           );
                           return;
                         }
-                          // Validate email input on every change
-                          if (email.text.isNotEmpty && !email.text.endsWith('.com')) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                        // Validate email input on every change
+                        if (email.text.isNotEmpty && !email.text.endsWith('.com')) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
                                 content: Text('Please enter a valid email address'),
                                 duration: Duration(seconds: 2)),
-                            );
-                            return;
+                          );
+                          return;
                         }
-                          if (password.text.isNotEmpty && password.text.length<8) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Please enter a password with minimum 8 characters')),
-                            );
-                            return;
-                          }
+                        if (password.text.isNotEmpty && password.text.length<8) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Please enter a password with minimum 8 characters')),
+                          );
+                          return;
+                        }
 
                         signUp();
                       },
@@ -751,6 +773,199 @@ class _SignupState extends State<Signup> {
     );
   }
 }
+
+// Email Verification Page
+class EmailVerificationPage extends StatefulWidget {
+  final String userEmail;
+
+  EmailVerificationPage({required this.userEmail});
+
+  @override
+  _EmailVerificationPageState createState() => _EmailVerificationPageState();
+}
+
+class _EmailVerificationPageState extends State<EmailVerificationPage> {
+  bool isEmailVerified = false;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if email is already verified
+    isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+
+    if (!isEmailVerified) {
+      sendVerificationEmail();
+
+      // Check email verification status every 3 seconds
+      timer = Timer.periodic(
+        Duration(seconds: 3),
+            (_) => checkEmailVerified(),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> checkEmailVerified() async {
+    // Reload user to get latest verification status
+    await FirebaseAuth.instance.currentUser?.reload();
+
+    setState(() {
+      isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+    });
+
+    if (isEmailVerified) {
+      timer?.cancel();
+      // Update verification status in database
+      await FirebaseDatabase.instance
+          .ref()
+          .child('Users')
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .update({'emailVerified': true});
+
+      // Navigate to homepage
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Email verified successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Homepage()),
+      );
+    }
+  }
+
+  Future<void> sendVerificationEmail() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      await user.sendEmailVerification();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verification email sent')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return isEmailVerified
+        ? Homepage()
+        : Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF0816A7),
+        title: Text('Verify Email', style: TextStyle(color: Colors.white)),
+      ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(color: Color(0xFF0816A7)),
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.email,
+                size: 100,
+                color: Colors.white,
+              ),
+              SizedBox(height: 30),
+              Text(
+                'Verify Your Email',
+                style: GoogleFonts.irishGrover(
+                  fontSize: 32,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'A verification email has been sent to:',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Text(
+                widget.userEmail,
+                style: TextStyle(
+                  color: Color(0xFFFFFF00),
+                  fontSize: 18,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              Text(
+                'Please check your email and click on the verification link to continue.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontFamily: 'Inter',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: sendVerificationEmail,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFFFFF00),
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+                child: Text(
+                  'Resend Verification Email',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Login()),
+                  );
+                },
+                child: Text(
+                  'Back to Login',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CountryPickerDialog extends StatefulWidget {
   final List<Map<String, String>> countries;
   final Function(String) onSelected;

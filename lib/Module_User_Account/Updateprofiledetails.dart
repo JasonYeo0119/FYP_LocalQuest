@@ -5,16 +5,29 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:localquest/Module_User_Account/Profile.dart';
 
 class Updateprofiledetails extends StatefulWidget {
+  final bool isVerified;
+  final String changeType;
+
+  const Updateprofiledetails({
+    Key? key,
+    this.isVerified = false,
+    this.changeType = 'basic_info',
+  }) : super(key: key);
+
   @override
   _UpdateprofiledetailsState createState() => _UpdateprofiledetailsState();
 }
 
 class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
+  final user = FirebaseAuth.instance.currentUser;
+  final _formKey = GlobalKey<FormState>();
 
-  final user=FirebaseAuth.instance.currentUser;  //Retrieve current logged in user
+  String _selectedCountry = "+60";
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = true;
+  bool _isSaving = false;
 
-  String _selectedCountry = "";
-  bool _obscureText = true;
   final List<Map<String, String>> _countries = [
     {"name": "Malaysia", "code": "MY", "phone": "+60"},
     {"name": "Afghanistan", "code": "AF", "phone": "+93"},
@@ -218,324 +231,548 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController phoneCodeController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    fetchUserDetails(); // Call function to get user name from database
+    fetchUserDetails();
   }
 
   fetchUserDetails() async {
-    if (user != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
-      DatabaseEvent event = await userRef.once();
+    setState(() => _isLoading = true);
 
-      if (event.snapshot.exists) {
-        setState(() {
-          nameController.text = event.snapshot.child("name").value.toString();
-          emailController.text = event.snapshot.child("email").value.toString();
-          phoneController.text = event.snapshot.child("phone").value.toString();
-          passwordController.text = event.snapshot.child("password").value.toString();
-          _selectedCountry = event.snapshot.child("phoneCode").value.toString();
-        });
-      } else {
-        print("User not found in database");
+    if (user != null) {
+      try {
+        DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
+        DatabaseEvent event = await userRef.once();
+
+        if (event.snapshot.exists) {
+          setState(() {
+            nameController.text = event.snapshot.child("name").value?.toString() ?? '';
+            emailController.text = event.snapshot.child("email").value?.toString() ?? '';
+            phoneController.text = event.snapshot.child("phone").value?.toString() ?? '';
+            _selectedCountry = event.snapshot.child("phoneCode").value?.toString() ?? '+60';
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar("User profile not found");
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar("Failed to load profile: ${e.toString()}");
       }
     }
   }
 
-  // 🔹 Function to update user details in Firebase
-  void updateUserDetails() async {
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  bool isValidEmail(String email) {
+    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+    RegExp regex = RegExp(pattern);
+    return regex.hasMatch(email);
+  }
+
+  bool isPasswordStrong(String password) {
+    if (password.length < 8) return false;
+    if (!password.contains(RegExp(r'[A-Z]'))) return false;
+    if (!password.contains(RegExp(r'[a-z]'))) return false;
+    if (!password.contains(RegExp(r'[0-9]'))) return false;
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) return false;
+    return true;
+  }
+
+  String _getPasswordStrengthText(String password) {
+    if (password.isEmpty) return '';
+    if (password.length < 8) return 'Password must be at least 8 characters';
+    if (!isPasswordStrong(password)) return 'Include uppercase, lowercase, number & special character';
+    return 'Strong password!';
+  }
+
+  Color _getPasswordStrengthColor(String password) {
+    if (password.isEmpty) return Colors.transparent;
+    if (password.length < 8) return Colors.red;
+    if (!isPasswordStrong(password)) return Colors.orange;
+    return Colors.green;
+  }
+
+  Future<void> updateUserDetails() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
 
-      // Update Authentication email
-      await user.updateEmail(emailController.text);
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(currentUser.uid);
 
-      // Update Authentication password
-      await user.updatePassword(passwordController.text);
+      // Update based on change type
+      if (widget.changeType == 'basic_info') {
+        await userRef.update({
+          "name": nameController.text.trim(),
+          "phone": phoneController.text.trim(),
+          "phoneCode": _selectedCountry,
+        });
+        _showSuccessSnackBar("Profile updated successfully!");
+      }
+      else if (widget.changeType == 'email') {
+        await currentUser.updateEmail(emailController.text.trim());
+        await currentUser.sendEmailVerification();
+        await userRef.update({"email": emailController.text.trim()});
+        _showSuccessSnackBar("Email updated! Please verify your new email.");
+      }
+      else if (widget.changeType == 'password') {
+        await currentUser.updatePassword(passwordController.text);
+        _showSuccessSnackBar("Password updated successfully!");
+      }
 
-      // Update Realtime Database
-      await userRef.update({
-        "name": nameController.text,
-        "email": emailController.text,
-        "phone": phoneController.text,
-        "phoneCode": _selectedCountry,
-      });
+      // Navigate back after successful update
+      await Future.delayed(Duration(seconds: 1));
+      Navigator.of(context).pop();
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profile updated successfully!")),
-      );
-
-      // ✅ Navigate to Profile Page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Profile()), // Change to your profile page widget
-      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
-      );
+      String errorMessage = 'Failed to update profile.';
+
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'email-already-in-use':
+            errorMessage = 'This email is already in use by another account.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'weak-password':
+            errorMessage = 'Password is too weak. Please choose a stronger password.';
+            break;
+          case 'requires-recent-login':
+            errorMessage = 'Please log out and log back in before making this change.';
+            break;
+          default:
+            errorMessage = e.message ?? 'Failed to update profile.';
+        }
+      }
+
+      _showErrorSnackBar(errorMessage);
+    } finally {
+      setState(() => _isSaving = false);
     }
   }
 
-  void _showCountryPicker(BuildContext context) {
-    showDialog(
+  void _showCountryPicker() {
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return CountryPickerDialog(
-          countries: _countries,
-          onSelected: (String selected) {
-            setState(() {
-              _selectedCountry = selected;
-            });
-          },
-        );
-      },
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => CountryPickerBottomSheet(
+        countries: _countries,
+        currentSelection: _selectedCountry,
+        onSelected: (String selected) {
+          setState(() => _selectedCountry = selected);
+        },
+      ),
     );
+  }
+
+  Widget _buildFormField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool isPassword = false,
+    bool isEmail = false,
+    bool isRequired = true,
+    String? Function(String?)? validator,
+    Widget? suffix,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label + (isRequired ? ' *' : ''),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            obscureText: isPassword ? (controller == passwordController ? _obscurePassword : _obscureConfirmPassword) : false,
+            keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+            validator: validator ?? (isRequired ? (value) {
+              if (value == null || value.isEmpty) {
+                return 'This field is required';
+              }
+              return null;
+            } : null),
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon, color: Color(0xFF0816A7)),
+              suffixIcon: isPassword
+                  ? IconButton(
+                icon: Icon(
+                  controller == passwordController
+                      ? (_obscurePassword ? Icons.visibility_off : Icons.visibility)
+                      : (_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (controller == passwordController) {
+                      _obscurePassword = !_obscurePassword;
+                    } else {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    }
+                  });
+                },
+              )
+                  : suffix,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(0xFF0816A7), width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          ),
+          if (isPassword && controller == passwordController && passwordController.text.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                _getPasswordStrengthText(passwordController.text),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _getPasswordStrengthColor(passwordController.text),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Phone Number *',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _showCountryPicker,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedCountry,
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Phone number is required';
+                    }
+                    if (value.length < 8) {
+                      return 'Please enter a valid phone number';
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Enter phone number',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF0816A7), width: 2),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.red, width: 1),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.red, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getUpdateTitle() {
+    switch (widget.changeType) {
+      case 'email':
+        return 'Update Email Address';
+      case 'password':
+        return 'Update Password';
+      default:
+        return 'Update Profile';
+    }
+  }
+
+  List<Widget> _buildFormFields() {
+    switch (widget.changeType) {
+      case 'email':
+        return [
+          _buildFormField(
+            label: 'New Email Address',
+            controller: emailController,
+            icon: Icons.email_outlined,
+            isEmail: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Email is required';
+              }
+              if (!isValidEmail(value)) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
+          ),
+        ];
+      case 'password':
+        return [
+          _buildFormField(
+            label: 'New Password',
+            controller: passwordController,
+            icon: Icons.lock_outline,
+            isPassword: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Password is required';
+              }
+              if (!isPasswordStrong(value)) {
+                return 'Password must be at least 8 characters with uppercase, lowercase, number & special character';
+              }
+              return null;
+            },
+          ),
+          _buildFormField(
+            label: 'Confirm New Password',
+            controller: confirmPasswordController,
+            icon: Icons.lock_outline,
+            isPassword: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please confirm your password';
+              }
+              if (value != passwordController.text) {
+                return 'Passwords do not match';
+              }
+              return null;
+            },
+          ),
+        ];
+      default:
+        return [
+          _buildFormField(
+            label: 'Full Name',
+            controller: nameController,
+            icon: Icons.person_outline,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Name is required';
+              }
+              if (value.trim().length < 2) {
+                return 'Name must be at least 2 characters';
+              }
+              return null;
+            },
+          ),
+          _buildPhoneField(),
+        ];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text("Update Account Details"),
+        title: Text(_getUpdateTitle(), style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Color(0xFF0816A7),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: double.infinity,
-              height: 800,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 30,
-                    top: 29,
-                    child: Text(
-                      'Name:',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 64,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: nameController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 120,
-                    child: Text(
-                      'Password:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 155,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: passwordController,
-                                obscureText: _obscureText,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                                style: TextStyle(fontSize: 16, color: Colors.black),
-                                textAlignVertical: TextAlignVertical.center,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _obscureText = !_obscureText;
-                                });
-                              },
-                              child: Icon(
-                                _obscureText ? Icons.visibility_off : Icons.visibility,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 211,
-                    child: Text(
-                      'Email:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 246,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 351,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 302,
-                    child: Text(
-                      'Phone Number:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: 'Irish Grover',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 30,
-                    top: 337,
-                    child: GestureDetector(
-                      onTap: () => _showCountryPicker(context),
-                      child: Container(
-                        width: 100,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _selectedCountry,
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 145,
-                    top: 337,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 235,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: phoneController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 160,
-                    top: 410,
-                    child: MaterialButton(
-                      color: Colors.green,
-                      textColor: Colors.white,
-                      child: Text("Update"),
-                      onPressed: updateUserDetails,
-                    ),
-                  )
-                ],
-              ),
-            ),
+            CircularProgressIndicator(color: Color(0xFF0816A7)),
+            SizedBox(height: 16),
+            Text('Loading profile...', style: TextStyle(color: Colors.grey[600])),
           ],
+        ),
+      )
+          : SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Update Info Card
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            widget.changeType == 'email'
+                                ? Icons.email_outlined
+                                : widget.changeType == 'password'
+                                ? Icons.lock_outline
+                                : Icons.edit_outlined,
+                            color: Color(0xFF0816A7),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            _getUpdateTitle(),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      ..._buildFormFields(),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 30),
+
+              // Update Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : updateUserDetails,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 3,
+                  ),
+                  child: _isSaving
+                      ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Updating...', style: TextStyle(fontSize: 16)),
+                    ],
+                  )
+                      : Text('Update Profile', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              // Cancel Button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 100), // Extra space at bottom
+            ],
+          ),
         ),
       ),
     );
@@ -547,22 +784,31 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
     emailController.dispose();
     phoneController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 }
 
-class CountryPickerDialog extends StatefulWidget {
+// Country Picker Bottom Sheet
+class CountryPickerBottomSheet extends StatefulWidget {
   final List<Map<String, String>> countries;
+  final String currentSelection;
   final Function(String) onSelected;
 
-  CountryPickerDialog({required this.countries, required this.onSelected});
+  const CountryPickerBottomSheet({
+    Key? key,
+    required this.countries,
+    required this.currentSelection,
+    required this.onSelected,
+  }) : super(key: key);
 
   @override
-  _CountryPickerDialogState createState() => _CountryPickerDialogState();
+  _CountryPickerBottomSheetState createState() => _CountryPickerBottomSheetState();
 }
 
-class _CountryPickerDialogState extends State<CountryPickerDialog> {
+class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
   String searchQuery = "";
+  final TextEditingController searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -572,45 +818,128 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
         country["phone"]!.contains(searchQuery))
         .toList();
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Container(
-        height: 400,
-        padding: EdgeInsets.all(10),
-        child: Column(
-          children: [
-            TextField(
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            margin: EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Title
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Icon(Icons.public, color: Color(0xFF0816A7)),
+                SizedBox(width: 8),
+                Text(
+                  'Select Country Code',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 16),
+
+          // Search field
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              controller: searchController,
               onChanged: (value) {
                 setState(() {
                   searchQuery = value;
                 });
               },
               decoration: InputDecoration(
-                hintText: "Search country name...",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                hintText: "Search country...",
+                prefixIcon: Icon(Icons.search, color: Color(0xFF0816A7)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Color(0xFF0816A7), width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
             ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredCountries.length,
-                itemBuilder: (context, index) {
-                  var country = filteredCountries[index];
-                  return ListTile(
-                    title: Text("${country["name"]} (${country["code"]})"),
-                    subtitle: Text("Phone: ${country["phone"]}"),
+          ),
+
+          SizedBox(height: 16),
+
+          // Countries list
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredCountries.length,
+              itemBuilder: (context, index) {
+                var country = filteredCountries[index];
+                bool isSelected = country["phone"] == widget.currentSelection;
+
+                return Container(
+                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Color(0xFF0816A7).withOpacity(0.1) : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      country["name"]!,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected ? Color(0xFF0816A7) : null,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Code: ${country["code"]}",
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Color(0xFF0816A7) : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        country["phone"]!,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     onTap: () {
                       widget.onSelected(country["phone"]!);
                       Navigator.pop(context);
                     },
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
   }
 }
