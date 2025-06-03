@@ -13,7 +13,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
 
-  static const String _apiKey = 'AIzaSyBPbK8eb4KKlvqTrCr1_Il-aOgUzbjli8U';
+  static const String _apiKey = 'GEMINI-API-KEY';
   static const String _model = 'gemini-1.5-flash'; // or gemini-1.5-pro
 
   void _sendMessage() async {
