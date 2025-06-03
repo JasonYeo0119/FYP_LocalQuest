@@ -1,7 +1,7 @@
 class Transport {
   final String id;
   final String name;
-  final String type; // Bus, Train, Flight, Car
+  final String type; // Bus, Train, Flight, Car, Ferry
   final String origin;
   final String destination;
   final double price;
@@ -33,13 +33,38 @@ class Transport {
 
   // Factory constructor to create Transport from Firebase data
   factory Transport.fromMap(String id, Map<String, dynamic> data) {
+    String transportType = data['type'] ?? 'Unknown';
+
+    // Handle different data structures based on transport type
+    String origin = '';
+    String destination = '';
+    double price = 0.0;
+
+    if (transportType == 'Car') {
+      // For cars, use location field or default to empty
+      origin = data['location'] ?? data['origin'] ?? '';
+      destination = data['location'] ?? data['destination'] ?? '';
+      price = (data['price'] ?? 0.0).toDouble();
+    } else if (transportType == 'Ferry') {
+      // For ferries, handle dual pricing
+      origin = data['origin'] ?? '';
+      destination = data['destination'] ?? '';
+      // Use pedestrian price as default, can be overridden in additionalInfo
+      price = (data['pedestrianPrice'] ?? data['price'] ?? 0.0).toDouble();
+    } else {
+      // For other transport types (Bus, Train, Flight)
+      origin = data['origin'] ?? '';
+      destination = data['destination'] ?? '';
+      price = (data['price'] ?? 0.0).toDouble();
+    }
+
     return Transport(
       id: id,
       name: data['name'] ?? 'Unnamed Transport',
-      type: data['type'] ?? 'Unknown',
-      origin: data['origin'] ?? '',
-      destination: data['destination'] ?? '',
-      price: (data['price'] ?? 0.0).toDouble(),
+      type: transportType,
+      origin: origin,
+      destination: destination,
+      price: price,
       imageUrl: data['imageUrl'],
       isHidden: data['hide'] ?? false,
       operatingDays: data['operatingDays'] != null
@@ -53,17 +78,45 @@ class Transport {
           : [],
       totalSeats: data['totalSeats'] ?? 33,
       description: data['description'],
-      additionalInfo: data['additionalInfo'],
+      additionalInfo: _buildAdditionalInfo(data, transportType),
     );
+  }
+
+  // Helper method to build additionalInfo based on transport type
+  static Map<String, dynamic>? _buildAdditionalInfo(Map<String, dynamic> data, String type) {
+    Map<String, dynamic> additionalInfo = {};
+
+    if (type == 'Car') {
+      // Car-specific fields
+      if (data['plateNumber'] != null) additionalInfo['plateNumber'] = data['plateNumber'];
+      if (data['location'] != null) additionalInfo['location'] = data['location'];
+      if (data['color'] != null) additionalInfo['color'] = data['color'];
+      if (data['driverIncluded'] != null) additionalInfo['driverIncluded'] = data['driverIncluded'];
+      if (data['maxPassengers'] != null) additionalInfo['maxPassengers'] = data['maxPassengers'];
+      if (data['priceType'] != null) additionalInfo['priceType'] = data['priceType'];
+    } else if (type == 'Ferry') {
+      // Ferry-specific fields
+      if (data['pedestrianPrice'] != null) additionalInfo['pedestrianPrice'] = data['pedestrianPrice'];
+      if (data['vehiclePrice'] != null) additionalInfo['vehiclePrice'] = data['vehiclePrice'];
+      if (data['priceType'] != null) additionalInfo['priceType'] = data['priceType'];
+    }
+
+    // Add any other fields that might be useful
+    if (data['createdAt'] != null) additionalInfo['createdAt'] = data['createdAt'];
+
+    // Include original additionalInfo if it exists
+    if (data['additionalInfo'] != null) {
+      additionalInfo.addAll(Map<String, dynamic>.from(data['additionalInfo']));
+    }
+
+    return additionalInfo.isEmpty ? null : additionalInfo;
   }
 
   // Convert Transport to Map for Firebase
   Map<String, dynamic> toMap() {
-    return {
+    Map<String, dynamic> map = {
       'name': name,
       'type': type,
-      'origin': origin,
-      'destination': destination,
       'price': price,
       'imageUrl': imageUrl,
       'hide': isHidden,
@@ -72,8 +125,47 @@ class Transport {
       'availableSeats': availableSeats,
       'totalSeats': totalSeats,
       'description': description,
-      'additionalInfo': additionalInfo,
     };
+
+    // Add type-specific fields
+    if (type == 'Car') {
+      // For cars, add location instead of origin/destination
+      if (additionalInfo != null && additionalInfo!['location'] != null) {
+        map['location'] = additionalInfo!['location'];
+      } else {
+        map['origin'] = origin;
+        map['destination'] = destination;
+      }
+
+      // Add car-specific fields from additionalInfo
+      if (additionalInfo != null) {
+        if (additionalInfo!['plateNumber'] != null) map['plateNumber'] = additionalInfo!['plateNumber'];
+        if (additionalInfo!['color'] != null) map['color'] = additionalInfo!['color'];
+        if (additionalInfo!['driverIncluded'] != null) map['driverIncluded'] = additionalInfo!['driverIncluded'];
+        if (additionalInfo!['maxPassengers'] != null) map['maxPassengers'] = additionalInfo!['maxPassengers'];
+        if (additionalInfo!['priceType'] != null) map['priceType'] = additionalInfo!['priceType'];
+      }
+    } else if (type == 'Ferry') {
+      map['origin'] = origin;
+      map['destination'] = destination;
+
+      // Add ferry-specific pricing
+      if (additionalInfo != null) {
+        if (additionalInfo!['pedestrianPrice'] != null) map['pedestrianPrice'] = additionalInfo!['pedestrianPrice'];
+        if (additionalInfo!['vehiclePrice'] != null) map['vehiclePrice'] = additionalInfo!['vehiclePrice'];
+        if (additionalInfo!['priceType'] != null) map['priceType'] = additionalInfo!['priceType'];
+      }
+    } else {
+      // For other transport types
+      map['origin'] = origin;
+      map['destination'] = destination;
+    }
+
+    if (additionalInfo != null) {
+      map['additionalInfo'] = additionalInfo;
+    }
+
+    return map;
   }
 
   // Helper methods
@@ -87,9 +179,23 @@ class Transport {
     return operatingDays.contains(dayName);
   }
 
-  String get route => '$origin → $destination';
+  String get route {
+    if (type == 'Car') {
+      // For cars, show location instead of route
+      return additionalInfo?['location'] ?? origin;
+    }
+    return '$origin → $destination';
+  }
 
-  String get formattedPrice => 'MYR ${price.toStringAsFixed(2)}';
+  String get formattedPrice {
+    if (type == 'Car') {
+      String priceType = additionalInfo?['priceType'] ?? 'per_day';
+      return 'MYR ${price.toStringAsFixed(2)} ${priceType == 'per_day' ? 'per day' : ''}';
+    } else if (type == 'Ferry') {
+      return 'MYR ${price.toStringAsFixed(2)} (Pedestrian)';
+    }
+    return 'MYR ${price.toStringAsFixed(2)}';
+  }
 
   // Check if transport matches search criteria
   bool matchesSearch({
@@ -97,11 +203,24 @@ class Transport {
     String? searchDestination,
     String? searchType,
   }) {
-    bool matchesOrigin = searchOrigin == null ||
-        origin.toLowerCase().contains(searchOrigin.toLowerCase());
+    bool matchesOrigin = false;
+    bool matchesDestination = false;
 
-    bool matchesDestination = searchDestination == null ||
-        destination.toLowerCase().contains(searchDestination.toLowerCase());
+    if (type == 'Car') {
+      // For cars, check location field
+      String carLocation = additionalInfo?['location'] ?? origin;
+      matchesOrigin = searchOrigin == null ||
+          carLocation.toLowerCase().contains(searchOrigin.toLowerCase()) ||
+          searchOrigin.toLowerCase().contains(carLocation.toLowerCase());
+      matchesDestination = searchDestination == null ||
+          carLocation.toLowerCase().contains(searchDestination.toLowerCase()) ||
+          searchDestination.toLowerCase().contains(carLocation.toLowerCase());
+    } else {
+      matchesOrigin = searchOrigin == null ||
+          origin.toLowerCase().contains(searchOrigin.toLowerCase());
+      matchesDestination = searchDestination == null ||
+          destination.toLowerCase().contains(searchDestination.toLowerCase());
+    }
 
     bool matchesType = searchType == null ||
         type.toLowerCase() == searchType.toLowerCase();

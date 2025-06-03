@@ -49,6 +49,11 @@ class TransportService {
         // Filter out hidden transports unless specifically requested
         if (!includeHidden && transport.isHidden) return false;
 
+        // Special handling for cars
+        if (type?.toLowerCase() == 'car') {
+          return _matchesCarSearch(transport, origin, destination, type);
+        }
+
         return transport.matchesSearch(
           searchOrigin: origin,
           searchDestination: destination,
@@ -59,6 +64,54 @@ class TransportService {
       print('Error searching transports: $e');
       return [];
     }
+  }
+
+  // Special car search matching
+  static bool _matchesCarSearch(Transport transport, String? origin, String? destination, String? type) {
+    // Check if it's a car
+    if (transport.type.toLowerCase() != 'car') return false;
+
+    // Check if hidden
+    if (transport.isHidden) return false;
+
+    // Get car location from various possible fields
+    String carLocation = '';
+    if (transport.additionalInfo != null && transport.additionalInfo!['location'] != null) {
+      carLocation = transport.additionalInfo!['location'].toString();
+    } else if (transport.origin.isNotEmpty) {
+      carLocation = transport.origin;
+    }
+
+    print('Car: ${transport.name}, Location: $carLocation');
+
+    // If no origin specified, return all cars
+    if (origin == null || origin.isEmpty) {
+      return true;
+    }
+
+    // Check if car location matches search origin
+    bool locationMatch = carLocation.toLowerCase().contains(origin.toLowerCase()) ||
+        origin.toLowerCase().contains(carLocation.toLowerCase());
+
+    // Try state/city matching if direct match fails
+    if (!locationMatch) {
+      List<String> searchParts = origin.split(',').map((s) => s.trim().toLowerCase()).toList();
+      List<String> carParts = carLocation.split(',').map((s) => s.trim().toLowerCase()).toList();
+
+      for (String searchPart in searchParts) {
+        for (String carPart in carParts) {
+          if (searchPart.isNotEmpty && carPart.isNotEmpty &&
+              (searchPart.contains(carPart) || carPart.contains(searchPart))) {
+            locationMatch = true;
+            break;
+          }
+        }
+        if (locationMatch) break;
+      }
+    }
+
+    print('Location match for ${transport.name}: $locationMatch');
+    return locationMatch;
   }
 
   // Get transport by ID
@@ -132,11 +185,21 @@ class TransportService {
   static Future<List<Transport>> getTransportsByType(String type) async {
     try {
       final allTransports = await getAllTransports();
-      return allTransports
+      List<Transport> filteredTransports = allTransports
           .where((transport) =>
       transport.type.toLowerCase() == type.toLowerCase() &&
           !transport.isHidden)
           .toList();
+
+      print('Found ${filteredTransports.length} transports of type $type');
+      for (var transport in filteredTransports) {
+        print('Transport: ${transport.name}, Type: ${transport.type}');
+        if (type.toLowerCase() == 'car' && transport.additionalInfo != null) {
+          print('Car details: ${transport.additionalInfo}');
+        }
+      }
+
+      return filteredTransports;
     } catch (e) {
       print('Error fetching transports by type: $e');
       return [];
@@ -190,5 +253,27 @@ class TransportService {
 
       return transports;
     });
+  }
+
+  // Get cars by location (specific method for car searches)
+  static Future<List<Transport>> getCarsByLocation(String location) async {
+    try {
+      final allCars = await getTransportsByType('Car');
+
+      return allCars.where((car) {
+        String carLocation = '';
+        if (car.additionalInfo != null && car.additionalInfo!['location'] != null) {
+          carLocation = car.additionalInfo!['location'].toString();
+        } else {
+          carLocation = car.origin;
+        }
+
+        return carLocation.toLowerCase().contains(location.toLowerCase()) ||
+            location.toLowerCase().contains(carLocation.toLowerCase());
+      }).toList();
+    } catch (e) {
+      print('Error fetching cars by location: $e');
+      return [];
+    }
   }
 }

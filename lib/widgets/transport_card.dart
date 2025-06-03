@@ -90,7 +90,7 @@ class _TransportCardState extends State<TransportCard> {
                     Icon(Icons.attach_money, size: 16, color: Colors.green),
                     SizedBox(width: 4),
                     Text(
-                      'MYR ${basePrice.toStringAsFixed(2)} per seat',
+                      'MYR ${basePrice.toStringAsFixed(2)} per day',
                       style: TextStyle(
                         color: Colors.green,
                         fontWeight: FontWeight.bold,

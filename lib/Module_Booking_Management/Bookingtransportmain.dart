@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
-import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
+import 'package:localquest/Module_Booking_Management/Bookingallinone.dart' hide Transport;
+import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart' hide Transport;
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Searchresult.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'Transportsearchresultscreen.dart';
 import '../services/transport_service.dart';
+import '../Model/transport.dart';
 
 @override
 void Search(BuildContext ctx) {
@@ -46,13 +47,19 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
   TextEditingController originController = TextEditingController();
   TextEditingController destinationController = TextEditingController();
 
+  // Car rental specific controllers
+  TextEditingController _bookingDateController = TextEditingController();
+  TextEditingController _numberOfDaysController = TextEditingController();
+  TextEditingController _carLocationController = TextEditingController();
+
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
+  DateTime? _bookingDate;
   String? _selectedTransport;
 
   // Tab controller for transport types
   late TabController _tabController;
-  int _selectedTabIndex = 0; // Default to Bus (index 1)
+  int _selectedTabIndex = 0; // Default to Car (index 0)
 
   // Add variables for search functionality
   bool _isLoading = false;
@@ -109,9 +116,25 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
         setState(() {
           _selectedTabIndex = _tabController.index;
           _selectedTransport = transportTypes[_selectedTabIndex];
+          // Clear form when switching tabs
+          _clearForm();
         });
       }
     });
+  }
+
+  void _clearForm() {
+    _checkInController.clear();
+    _checkOutController.clear();
+    originController.clear();
+    destinationController.clear();
+    _bookingDateController.clear();
+    _numberOfDaysController.clear();
+    _carLocationController.clear();
+
+    _checkInDate = null;
+    _checkOutDate = null;
+    _bookingDate = null;
   }
 
   @override
@@ -121,69 +144,137 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
   }
 
   Future<void> _searchTransports() async {
-    // Validate form before searching
-    if (originController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter origin location")),
-      );
-      return;
+    // Validate form based on transport type
+    if (_selectedTransport == 'Car') {
+      if (_carLocationController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select car location")),
+        );
+        return;
+      }
+
+      if (_bookingDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select booking date")),
+        );
+        return;
+      }
+
+      if (_numberOfDaysController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter number of days")),
+        );
+        return;
+      }
+    } else {
+      // Validation for other transport types
+      if (originController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter origin location")),
+        );
+        return;
+      }
+
+      if (destinationController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter destination location")),
+        );
+        return;
+      }
+
+      if (_checkInDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select departure date")),
+        );
+        return;
+      }
     }
 
-    if (destinationController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter destination location")),
-      );
-      return;
-    }
-
-    if (_checkInDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select departure date")),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      // Use the TransportService to search for transports
-      final transports = await TransportService.searchTransports(
-        origin: originController.text,
-        destination: destinationController.text,
-        type: _selectedTransport,
-      );
-
-      setState(() {
-        _isLoading = false;
-        _showResults = true;
-      });
-
-      // Navigate to search results page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TransportSearchResultsScreen(
-            transports: transports,
-            origin: originController.text,
-            destination: destinationController.text,
-            departDate: _checkInDate!,
-            returnDate: _checkOutDate,
-            transportType: _selectedTransport,
-          ),
+    // Navigate to search results page - let it handle the data fetching
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TransportSearchResultsScreen(
+          transports: [], // Empty list - results screen will fetch data
+          origin: _selectedTransport == 'Car' ? _carLocationController.text : originController.text,
+          destination: _selectedTransport == 'Car' ? _carLocationController.text : destinationController.text,
+          departDate: _selectedTransport == 'Car' ? _bookingDate! : _checkInDate!,
+          returnDate: _selectedTransport == 'Car' ? null : _checkOutDate,
+          transportType: _selectedTransport,
+          // Pass car-specific parameters
+          carLocation: _selectedTransport == 'Car' ? _carLocationController.text : null,
+          numberOfDays: _selectedTransport == 'Car' ? int.tryParse(_numberOfDaysController.text) : null,
         ),
-      );
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to search transports. Please try again.';
-      });
+      ),
+    );
+  }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to search transports. Please try again.')),
+  Future<List<Transport>> _fetchCarInformation() async {
+    try {
+      print('Fetching car information...');
+      print('Location: ${_carLocationController.text}');
+      print('Booking Date: ${_bookingDate?.toString()}');
+      print('Number of Days: ${_numberOfDaysController.text}');
+
+      // Get all cars from the selected location
+      List<Transport> allCars = await TransportService.searchTransports(
+        origin: _carLocationController.text,
+        type: 'Car',
       );
+
+      print('Found ${allCars.length} cars in database');
+
+      // Filter cars based on availability and location
+      List<Transport> availableCars = allCars.where((car) {
+        // Check if car is not hidden
+        if (car.isHidden) {
+          print('Car ${car.name} is hidden');
+          return false;
+        }
+
+        // Check if car origin matches selected location
+        bool locationMatch = car.origin.toLowerCase().contains(_carLocationController.text.toLowerCase());
+        if (!locationMatch) {
+          print('Car ${car.name} location does not match: ${car.origin}');
+          return false;
+        }
+
+        // Check if car is available on the selected date (if operating days are specified)
+        if (car.operatingDays.isNotEmpty && _bookingDate != null) {
+          String selectedDay = _getDayName(_bookingDate!.weekday);
+          bool isAvailableOnDay = car.operatingDays.contains(selectedDay);
+          if (!isAvailableOnDay) {
+            print('Car ${car.name} not available on $selectedDay');
+            return false;
+          }
+        }
+
+        print('Car ${car.name} is available');
+        return true;
+      }).toList();
+
+      print('Filtered to ${availableCars.length} available cars');
+
+      // Sort cars by price (lowest first)
+      availableCars.sort((a, b) => a.price.compareTo(b.price));
+
+      return availableCars;
+    } catch (e) {
+      print('Error fetching car information: $e');
+      throw Exception('Failed to fetch car information: $e');
+    }
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1: return 'Monday';
+      case 2: return 'Tuesday';
+      case 3: return 'Wednesday';
+      case 4: return 'Thursday';
+      case 5: return 'Friday';
+      case 6: return 'Saturday';
+      case 7: return 'Sunday';
+      default: return '';
     }
   }
 
@@ -233,6 +324,25 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
     }
   }
 
+  Future<void> _selectBookingDate(BuildContext context) async {
+    DateTime today = DateTime.now();
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: today,
+      firstDate: today,
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _bookingDate = pickedDate;
+        _bookingDateController.text =
+        "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+      });
+    }
+  }
+
   void swapValues() {
     setState(() {
       String temp = originController.text;
@@ -259,6 +369,8 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
 
   @override
   Widget build(BuildContext context) {
+    bool isCarSelected = _selectedTransport == 'Car';
+
     return Scaffold(
       appBar: AppBar(
         title: Text("All Transports"),
@@ -334,190 +446,284 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
                       ),
                     ),
                   ),
-                  Positioned( //departdate
-                    left: 25,
-                    top: 73, // Moved down to accommodate tabs
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _checkInController,
-                          readOnly: true,
-                          // Prevent manual input
-                          onTap: () =>
-                              _selectDate(context, _checkInController, true),
-                          decoration: InputDecoration(
-                            hintText: 'Depart date',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+
+                  // Conditional form fields based on transport type
+                  if (isCarSelected) ...[
+                    // Car rental form
+                    Positioned( // Booking date
+                      left: 25,
+                      top: 73,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
                           ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned( //returndate
-                    left: 212,
-                    top: 73, // Moved down to accommodate tabs
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _checkOutController,
-                          readOnly: true,
-                          // Prevent manual input
-                          onTap: () =>
-                              _selectDate(context, _checkOutController, false),
-                          decoration: InputDecoration(
-                            hintText: 'Return date (Optional)',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned( //originplace
-                    left: 25,
-                    top: 116, // Moved down to accommodate tabs
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: originController.text.isEmpty ? null : originController.text,
-                            hint: Text('Origin', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                            isExpanded: true,
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: TextField(
+                            controller: _bookingDateController,
+                            readOnly: true,
+                            onTap: () => _selectBookingDate(context),
+                            decoration: InputDecoration(
+                              hintText: 'Booking date',
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
                             style: TextStyle(fontSize: 14, color: Colors.black),
-                            dropdownColor: Colors.white,
-                            items: locations.map((String location) {
-                              return DropdownMenuItem<String>(
-                                value: location,
-                                child: Text(location),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                originController.text = newValue ?? '';
-                              });
-                            },
+                            textAlignVertical: TextAlignVertical.center,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned( //destination
-                    left: 212,
-                    top: 116, // Moved down to accommodate tabs
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        alignment: Alignment.center,
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: destinationController.text.isEmpty ? null : destinationController.text,
-                            hint: Text('Destination', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                            isExpanded: true,
+                    Positioned( // Number of days
+                      left: 212,
+                      top: 73,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: TextField(
+                            controller: _numberOfDaysController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'Number of days',
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
                             style: TextStyle(fontSize: 14, color: Colors.black),
-                            dropdownColor: Colors.white,
-                            items: locations.map((String location) {
-                              return DropdownMenuItem<String>(
-                                value: location,
-                                child: Text(location),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                destinationController.text = newValue ?? '';
-                              });
-                            },
+                            textAlignVertical: TextAlignVertical.center,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned( //switchbutton
-                    left: 183,
-                    top: 114, // Moved down to accommodate tabs
-                    child: GestureDetector(
-                      onTap: swapValues, // Call swapValues() when tapped
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                    Positioned( // Car location
+                      left: 25,
+                      top: 116,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 357,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
                           ),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _carLocationController.text.isEmpty ? null : _carLocationController.text,
+                              hint: Text('Select car location', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              isExpanded: true,
+                              style: TextStyle(fontSize: 14, color: Colors.black),
+                              dropdownColor: Colors.white,
+                              items: carlocations.map((String location) {
+                                return DropdownMenuItem<String>(
+                                  value: location,
+                                  child: Text(location),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _carLocationController.text = newValue ?? '';
+                                });
+                              },
+                            ),
+                          ),
                         ),
-                        child: Icon(Icons.swap_horiz,
-                            color: Colors.white), // Add an icon
                       ),
                     ),
-                  ),
-                  // Display current transport type selection
-                  Positioned(
-                    left: 25,
-                    top: 159, // Moved down to accommodate tabs
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                  ] else ...[
+                    // Other transport forms (Bus, Flight, Train)
+                    Positioned( //departdate
+                      left: 25,
+                      top: 73, // Moved down to accommodate tabs
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: TextField(
+                            controller: _checkInController,
+                            readOnly: true,
+                            // Prevent manual input
+                            onTap: () =>
+                                _selectDate(context, _checkInController, true),
+                            decoration: InputDecoration(
+                              hintText: 'Depart date',
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.black),
+                            textAlignVertical: TextAlignVertical.center,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    Positioned( //returndate
+                      left: 212,
+                      top: 73, // Moved down to accommodate tabs
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: TextField(
+                            controller: _checkOutController,
+                            readOnly: true,
+                            // Prevent manual input
+                            onTap: () =>
+                                _selectDate(context, _checkOutController, false),
+                            decoration: InputDecoration(
+                              hintText: 'Return date (Optional)',
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.black),
+                            textAlignVertical: TextAlignVertical.center,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned( //originplace
+                      left: 25,
+                      top: 116, // Moved down to accommodate tabs
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: originController.text.isEmpty ? null : originController.text,
+                              hint: Text('Origin', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              isExpanded: true,
+                              style: TextStyle(fontSize: 14, color: Colors.black),
+                              dropdownColor: Colors.white,
+                              items: locations.map((String location) {
+                                return DropdownMenuItem<String>(
+                                  value: location,
+                                  child: Text(location),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  originController.text = newValue ?? '';
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned( //destination
+                      left: 212,
+                      top: 116, // Moved down to accommodate tabs
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 170,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          alignment: Alignment.center,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: destinationController.text.isEmpty ? null : destinationController.text,
+                              hint: Text('Destination', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              isExpanded: true,
+                              style: TextStyle(fontSize: 14, color: Colors.black),
+                              dropdownColor: Colors.white,
+                              items: locations.map((String location) {
+                                return DropdownMenuItem<String>(
+                                  value: location,
+                                  child: Text(location),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  destinationController.text = newValue ?? '';
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned( //switchbutton
+                      left: 183,
+                      top: 114, // Moved down to accommodate tabs
+                      child: GestureDetector(
+                        onTap: swapValues, // Call swapValues() when tapped
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: ShapeDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment(1.00, 0.00),
+                              end: Alignment(-1, 0),
+                              colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                            ),
+                            shape: OvalBorder(side: BorderSide(width: 1)),
+                            shadows: [
+                              BoxShadow(
+                                color: Color(0x3F000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 4),
+                                spreadRadius: 0,
+                              )
+                            ],
+                          ),
+                          child: Icon(Icons.swap_horiz,
+                              color: Colors.white), // Add an icon
+                        ),
+                      ),
+                    ),
+                  ],
+
                   Positioned( //Searchbutton
                     left: 129,
                     top: 172, // Moved down to accommodate tabs
