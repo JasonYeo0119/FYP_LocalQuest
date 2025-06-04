@@ -569,10 +569,6 @@ class _HomepageState extends State<Homepage> {
             ),
             GestureDetector(  // Wrap in GestureDetector for navigation
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Payment()), //Backup
-                );
               },
             child: Column(  //Home
               mainAxisSize: MainAxisSize.min,

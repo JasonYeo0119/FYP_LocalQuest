@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import '../Model/transport.dart';
 import '../services/transport_service.dart';
+import '../Module_Financial/Payment.dart'; // Import the new payment page
 
 // Replace your current TransportCard class with this enhanced version:
 
 class TransportCard extends StatefulWidget {
   final Map<String, dynamic> transport;
+  final DateTime? departDate;
+  final DateTime? returnDate;
+  final int? numberOfDays;
 
-  const TransportCard({Key? key, required this.transport}) : super(key: key);
+  const TransportCard({
+    Key? key,
+    required this.transport,
+    this.departDate,
+    this.returnDate,
+    this.numberOfDays,
+  }) : super(key: key);
 
   @override
   _TransportCardState createState() => _TransportCardState();
@@ -33,7 +43,14 @@ class _TransportCardState extends State<TransportCard> {
     }
 
     double basePrice = (widget.transport['price'] ?? 0.0).toDouble();
-    double totalPrice = basePrice * selectedSeats.length;
+    double totalPrice;
+
+    // Calculate total price based on transport type
+    if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) {
+      totalPrice = basePrice * widget.numberOfDays!;
+    } else {
+      totalPrice = basePrice * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
+    }
 
     return Card(
       elevation: 4,
@@ -84,13 +101,32 @@ class _TransportCardState extends State<TransportCard> {
                 ),
                 SizedBox(height: 8),
 
-                // Price per seat and total
+                // Route or Location Information
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        widget.transport['type']?.toString().toLowerCase() == 'car'
+                            ? (widget.transport['location']?.toString() ?? widget.transport['origin']?.toString() ?? 'Unknown Location')
+                            : '${widget.transport['origin']?.toString() ?? 'Unknown'} → ${widget.transport['destination']?.toString() ?? 'Unknown'}',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                // Price information
                 Row(
                   children: [
                     Icon(Icons.attach_money, size: 16, color: Colors.green),
                     SizedBox(width: 4),
                     Text(
-                      'MYR ${basePrice.toStringAsFixed(2)} per day',
+                      widget.transport['type']?.toString().toLowerCase() == 'car'
+                          ? 'MYR ${basePrice.toStringAsFixed(2)} per day'
+                          : 'MYR ${basePrice.toStringAsFixed(2)} per seat',
                       style: TextStyle(
                         color: Colors.green,
                         fontWeight: FontWeight.bold,
@@ -100,12 +136,25 @@ class _TransportCardState extends State<TransportCard> {
                   ],
                 ),
 
+                // Car-specific information
+                if (widget.transport['type']?.toString().toLowerCase() == 'car') ...[
+                  SizedBox(height: 8),
+                  if (widget.transport['plateNumber'] != null)
+                    _buildCarInfoRow('Plate Number:', widget.transport['plateNumber'].toString()),
+                  if (widget.transport['color'] != null)
+                    _buildCarInfoRow('Color:', widget.transport['color'].toString()),
+                  if (widget.transport['maxPassengers'] != null)
+                    _buildCarInfoRow('Max Passengers:', '${widget.transport['maxPassengers']} persons'),
+                  if (widget.transport['driverIncluded'] != null)
+                    _buildCarInfoRow('Driver:', widget.transport['driverIncluded'] == true ? 'Included' : 'Self-drive'),
+                ],
+
                 SizedBox(height: 12),
                 Divider(),
                 SizedBox(height: 8),
 
-                // Available Times (Clickable)
-                if (timeSlots.isNotEmpty) ...[
+                // Available Times (Clickable) - Only for non-car transports
+                if (timeSlots.isNotEmpty && widget.transport['type']?.toString().toLowerCase() != 'car') ...[
                   Text(
                     'Available Times:',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -154,8 +203,8 @@ class _TransportCardState extends State<TransportCard> {
                   SizedBox(height: 12),
                 ],
 
-                // Seat Selection (only show if time is selected)
-                if (selectedTime != null && availableSeats.isNotEmpty) ...[
+                // Seat Selection (only show if time is selected and not a car)
+                if (selectedTime != null && availableSeats.isNotEmpty && widget.transport['type']?.toString().toLowerCase() != 'car') ...[
                   Text(
                     'Select Seats (Max 5):',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -357,6 +406,47 @@ class _TransportCardState extends State<TransportCard> {
                   SizedBox(height: 16),
                 ],
 
+                // Car rental summary
+                if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) ...[
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.deepPurple[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Rental Summary:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple[800],
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Duration: ${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}',
+                          style: TextStyle(color: Colors.deepPurple[700]),
+                        ),
+                        Text(
+                          'Price per day: MYR ${basePrice.toStringAsFixed(2)}',
+                          style: TextStyle(color: Colors.deepPurple[700]),
+                        ),
+                        Text(
+                          'Total Price: MYR ${totalPrice.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+
                 // Description
                 if (widget.transport['description'] != null &&
                     widget.transport['description'].toString().isNotEmpty) ...[
@@ -378,7 +468,7 @@ class _TransportCardState extends State<TransportCard> {
                   child: ElevatedButton(
                     onPressed: _canBookNow()
                         ? () {
-                      _bookTransport(context, widget.transport, selectedTime, selectedSeats, totalPrice);
+                      _navigateToPayment(context);
                     }
                         : null,
                     style: ElevatedButton.styleFrom(
@@ -405,6 +495,25 @@ class _TransportCardState extends State<TransportCard> {
     );
   }
 
+  Widget _buildCarInfoRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _canBookNow() {
     List<String> timeSlots = [];
     if (widget.transport['timeSlots'] is List) {
@@ -414,6 +523,11 @@ class _TransportCardState extends State<TransportCard> {
     List<int> availableSeats = [];
     if (widget.transport['availableSeats'] is List) {
       availableSeats = List<int>.from(widget.transport['availableSeats']);
+    }
+
+    // For cars, no seat or time selection required
+    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
+      return true;
     }
 
     // If transport has time slots, user must select time
@@ -438,6 +552,12 @@ class _TransportCardState extends State<TransportCard> {
     List<int> availableSeats = [];
     if (widget.transport['availableSeats'] is List) {
       availableSeats = List<int>.from(widget.transport['availableSeats']);
+    }
+
+    // For cars
+    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
+      double totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (widget.numberOfDays ?? 1);
+      return 'Book Now - MYR ${totalPrice.toStringAsFixed(2)}';
     }
 
     if (timeSlots.isNotEmpty && selectedTime == null) {
@@ -471,63 +591,32 @@ class _TransportCardState extends State<TransportCard> {
     }
   }
 
-  void _bookTransport(BuildContext context, Map<String, dynamic> transport, String? selectedTime, List<int> selectedSeats, double totalPrice) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirm Booking'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Transport: ${transport['name']?.toString() ?? 'Unknown'}'),
-              Text('Type: ${transport['type']?.toString() ?? 'Unknown'}'),
-              Text('Route: ${transport['origin']?.toString() ?? 'Unknown'} → ${transport['destination']?.toString() ?? 'Unknown'}'),
-              if (selectedTime != null) Text('Time: $selectedTime'),
-              if (selectedSeats.isNotEmpty) ...[
-                Text('Seats: ${selectedSeats.join(', ')}'),
-                Text('Quantity: ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''}'),
-              ],
-              SizedBox(height: 8),
-              Divider(),
-              Text(
-                'Total Price: MYR ${totalPrice.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.deepPurple,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Booking confirmed! Total: MYR ${totalPrice.toStringAsFixed(2)}'),
-                    backgroundColor: Colors.deepPurple,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Confirm Booking'),
-            ),
-          ],
-        );
-      },
+  void _navigateToPayment(BuildContext context) {
+    double totalPrice;
+
+    // Calculate total price based on transport type
+    if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) {
+      totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * widget.numberOfDays!;
+    } else {
+      totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingPaymentPage(
+          transport: widget.transport,
+          selectedTime: selectedTime,
+          selectedSeats: selectedSeats,
+          totalPrice: totalPrice,
+          departDate: widget.departDate,
+          returnDate: widget.returnDate,
+          numberOfDays: widget.numberOfDays,
+        ),
+      ),
     );
   }
+
   Widget _buildSeatWidget(int seatNumber) {
     bool isSelected = selectedSeats.contains(seatNumber);
     bool canSelect = selectedSeats.length < maxSeats || isSelected;
@@ -591,5 +680,3 @@ class _TransportCardState extends State<TransportCard> {
     );
   }
 }
-
-

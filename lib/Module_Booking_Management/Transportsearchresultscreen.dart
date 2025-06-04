@@ -350,7 +350,12 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
                     }
                   }
 
-                  return TransportCard(transport: transportMap);
+                  return TransportCard(
+                    transport: transportMap,
+                    departDate: widget.departDate,
+                    returnDate: widget.returnDate,
+                    numberOfDays: widget.numberOfDays,
+                  );
                 },
               ),
             ),
