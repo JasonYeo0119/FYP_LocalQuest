@@ -19,7 +19,7 @@ class PaymentFailed extends StatelessWidget {
             SizedBox(height: 20),
             Text(
               "Payment Failed",
-              style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.red),
             ),
             SizedBox(height: 10),
             Text(
@@ -29,7 +29,8 @@ class PaymentFailed extends StatelessWidget {
             SizedBox(height: 30),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
+                //Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

@@ -19,11 +19,17 @@ class PaymentSuccess extends StatelessWidget {
             SizedBox(height: 20),
             Text(
               "Payment Successful",
-              style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.green),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             Text(
               "Thank you for your payment!",
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 20),
+            Text(
+              "A booking confirmation will be sent\nto your email soon!",
+              textAlign: TextAlign.center,
               style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
             ),
             SizedBox(height: 30),

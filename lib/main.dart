@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:localquest/Admin/Adminpage.dart';
+import 'package:localquest/Homepage.dart';
 import 'package:localquest/Module_User_Account/Login.dart';
 import 'firebase_options.dart';
 
@@ -13,7 +14,6 @@ void main() {
 Future<void> Database() async {
   WidgetsFlutterBinding.ensureInitialized();
     await Firebase.initializeApp(
-      //name: 'localquest-54672',
       options: DFirebaseOptions.currentPlatform,
     );
 }
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           SizedBox(
             height: MediaQuery.of(context).size.height,  // or any specific height
             //child: Login(),
-            child: Adminpage(),
+            child: Homepage(),
           ),
         ]),
       ),

@@ -69,50 +69,6 @@ class _HistoryState extends State<History> {
               ),
               SizedBox(height: 20),
 
-              // Booking Card
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Booking Number: 3X42GJ9",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "Attraction: Aquaria KLCC ticket in Kuala Lumpur",
-                        style: TextStyle(fontSize: 15),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "Visit Date: 6/6/2025",
-                        style: TextStyle(fontSize: 15),
-                      ),
-                      SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Navigate to QR Code screen or show dialog
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text("QR Code Viewer coming soon!"),
-                          ));
-                        },
-                        child: Text(
-                          "Click to view QR code",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                            fontSize: 15,
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -1,5 +1,3 @@
-// ignore_for_file: unused_field
-
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +7,16 @@ import 'package:localquest/Module_Financial/Paymentstatus_F.dart';
 import 'package:localquest/Module_Financial/Paymentstatus_S.dart';
 
 class Paymentloading extends StatefulWidget {
-  // The next page to navigate to after loading
+  final String cardNumber;
+  final String expiry;
+  final String cvv;
 
+  const Paymentloading({
+    Key? key,
+    required this.cardNumber,
+    required this.expiry,
+    required this.cvv,
+  }) : super(key: key);
 
   @override
   _PaymentloadingState createState() => _PaymentloadingState();
@@ -20,6 +26,11 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   late AnimationController _controller;
   late Animation<double> _animation;
   bool _isProcessing = true;
+
+  // Define the valid card details here
+  static const String VALID_CARD_NUMBER = "4848100061531890"; // Replace with your valid card number
+  static const String VALID_CARD_DATE = "1226"; // Format: MMYY (e.g., December 2025)
+  static const String VALID_CARD_CVV = "550"; // Replace with your valid CVV
 
   @override
   void initState() {
@@ -42,13 +53,35 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         _isProcessing = false;
       });
 
-      // Navigate to the next page
+      // Verify card number and navigate accordingly
+      _verifyCardNumberAndNavigate();
+    });
+  }
+
+  void _verifyCardNumberAndNavigate() {
+    // Remove any spaces or formatting from the card details for comparison
+    String cleanCardNumber = widget.cardNumber.replaceAll(' ', '').replaceAll('-', '');
+    String cleanExpiry = widget.expiry.replaceAll(' ', '').replaceAll('-', '').replaceAll('/', '');
+    String cleanCvv = widget.cvv.replaceAll(' ', '').replaceAll('-', '');
+
+    // Check if all card details match the valid ones
+    bool isValidCard = cleanCardNumber == VALID_CARD_NUMBER;
+    bool isValidDate = cleanExpiry == VALID_CARD_DATE;
+    bool isValidCvv = cleanCvv == VALID_CARD_CVV;
+
+    if (isValidCard && isValidDate && isValidCvv) {
+      // Navigate to Payment Success
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => PaymentSuccess()),
-        //MaterialPageRoute(builder: (context) => PaymentFailed()),
       );
-    });
+    } else {
+      // Navigate to Payment Failed
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => PaymentFailed()),
+      );
+    }
   }
 
   @override

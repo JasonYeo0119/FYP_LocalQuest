@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:localquest/Module_Financial/Paymentloading.dart';
 
 class BookingPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transport;
@@ -77,13 +78,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             _buildContactInformationCard(),
             SizedBox(height: 24),
 
-            // Payment Method Selection
-            _buildPaymentMethodCard(),
-            SizedBox(height: 24),
-
-            // Payment Details (if credit card selected)
-            if (_selectedPaymentMethod == 'credit_card')
-              _buildPaymentDetailsCard(),
+            _buildPaymentDetailsCard(),
 
             SizedBox(height: 32),
 
@@ -248,7 +243,6 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.email),
               ),
-              keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your email address';
@@ -274,86 +268,6 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                   return 'Please enter your phone number';
                 }
                 return null;
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethodCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.payment, color: Color(0xFF7107F3), size: 24),
-                SizedBox(width: 8),
-                Text(
-                  'Payment Method',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF7107F3),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            RadioListTile<String>(
-              title: Row(
-                children: [
-                  Icon(Icons.credit_card, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text('Credit/Debit Card'),
-                ],
-              ),
-              value: 'credit_card',
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPaymentMethod = value!;
-                });
-              },
-            ),
-
-            RadioListTile<String>(
-              title: Row(
-                children: [
-                  Icon(Icons.account_balance_wallet, color: Colors.green),
-                  SizedBox(width: 8),
-                  Text('E-Wallet (GrabPay, TouchNGo)'),
-                ],
-              ),
-              value: 'e_wallet',
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPaymentMethod = value!;
-                });
-              },
-            ),
-
-            RadioListTile<String>(
-              title: Row(
-                children: [
-                  Icon(Icons.account_balance, color: Colors.purple),
-                  SizedBox(width: 8),
-                  Text('Online Banking'),
-                ],
-              ),
-              value: 'online_banking',
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPaymentMethod = value!;
-                });
               },
             ),
           ],
@@ -579,105 +493,29 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
       return;
     }
 
-    // Validate payment details if credit card is selected
-    if (_selectedPaymentMethod == 'credit_card') {
-      if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
-        return;
-      }
-    }
-
     setState(() {
       _isProcessing = true;
     });
 
     try {
-      // Simulate payment processing
-      await Future.delayed(Duration(seconds: 3));
-
-      // Show success and navigate back
-      _showPaymentSuccess();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment failed. Please try again.'),
-          backgroundColor: Colors.red,
+      // Navigate to payment loading screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Paymentloading(
+          cardNumber: _cardNumberController.text,
+          expiry: _expiryController.text,
+          cvv: _cvvController.text,
+        ),
         ),
       );
-    } finally {
+
+    } catch (e) {
+      // Handle any errors
+      print('Navigation error: $e');
       setState(() {
         _isProcessing = false;
       });
     }
-  }
-
-  void _showPaymentSuccess() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 50,
-                ),
-              ),
-              SizedBox(height: 24),
-              Text(
-                'Payment Successful!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Your booking has been confirmed.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Booking confirmation will be sent to ${_emailController.text}',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    Navigator.of(context).pop(); // Go back to search results
-                    Navigator.of(context).pop(); // Go back to main booking page
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF7107F3),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text('Back to Home'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 }
 
