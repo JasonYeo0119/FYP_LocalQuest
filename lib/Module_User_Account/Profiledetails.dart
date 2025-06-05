@@ -251,15 +251,6 @@ class _ProfiledetailsState extends State<Profiledetails> {
               },
             ),
             _buildEditOption(
-              icon: Icons.email_outlined,
-              title: 'Email Address',
-              subtitle: 'Change your email (requires verification)',
-              onTap: () {
-                Navigator.of(context).pop();
-                _showVerificationDialog('email');
-              },
-            ),
-            _buildEditOption(
               icon: Icons.lock_outline,
               title: 'Password',
               subtitle: 'Update your password (requires verification)',
@@ -397,7 +388,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(color: Color(0xFF0816A7)),
-            SizedBox(height: 16),
+            SizedBox(height: 10),
             Text('Loading profile...', style: TextStyle(color: Colors.grey[600])),
           ],
         ),
@@ -427,7 +418,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
                           style: TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: 10),
                       Text(
                         name.text.isEmpty ? 'User' : name.text,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -436,7 +427,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
                         email.text,
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 10),
                       ElevatedButton.icon(
                         onPressed: _handleEdit,
                         icon: Icon(Icons.edit),
@@ -452,7 +443,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 5),
 
               // Profile Information Card
               Card(
@@ -473,7 +464,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 5),
                       _buildProfileField(
                         label: 'Full Name',
                         controller: name,
@@ -485,12 +476,6 @@ class _ProfiledetailsState extends State<Profiledetails> {
                         icon: Icons.email_outlined,
                       ),
                       _buildProfileField(
-                        label: 'Password',
-                        controller: password,
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                      ),
-                      _buildProfileField(
                         label: 'Phone Number',
                         controller: number,
                         icon: Icons.phone_outlined,
@@ -500,7 +485,6 @@ class _ProfiledetailsState extends State<Profiledetails> {
                   ),
                 ),
               ),
-              SizedBox(height: 100), // Extra space at bottom
             ],
           ),
         ),

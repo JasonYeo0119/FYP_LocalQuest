@@ -10,9 +10,11 @@ class TransportSearchResultsScreen extends StatefulWidget {
   final DateTime departDate;
   final DateTime? returnDate;
   final String? transportType;
-  // Car-specific parameters
   final String? carLocation;
   final int? numberOfDays;
+  final String? ferryTicketType;
+  final int? ferryNumberOfPax;
+
 
   const TransportSearchResultsScreen({
     Key? key,
@@ -24,6 +26,8 @@ class TransportSearchResultsScreen extends StatefulWidget {
     this.transportType,
     this.carLocation,
     this.numberOfDays,
+    this.ferryNumberOfPax,
+    this.ferryTicketType,
   }) : super(key: key);
 
   @override

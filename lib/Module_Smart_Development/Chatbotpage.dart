@@ -108,7 +108,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("AI Chatbot", style: TextStyle(color: Colors.white)),
+        title: Text("AI Chatbot", style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        ),
         backgroundColor: Color(0xFF0238FF),
         elevation: 2,
       ),

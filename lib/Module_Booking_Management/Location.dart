@@ -33,8 +33,13 @@ class _LocationState extends State<Location> {
   bool isLoading = true;
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredAttractions = [];
-  // Map to track favorite status of attractions
   Map<String, bool> favoriteStatus = {};
+
+  // Filter variables
+  String? selectedState;
+  String? selectedType;
+  List<String> availableStates = [];
+  List<String> availableTypes = [];
 
   @override
   void initState() {
@@ -43,7 +48,6 @@ class _LocationState extends State<Location> {
     loadFavoriteStatuses();
   }
 
-  // Load favorite statuses for all attractions
   void loadFavoriteStatuses() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -54,7 +58,6 @@ class _LocationState extends State<Location> {
         .child(user.uid)
         .child('favorites');
 
-    // Listen for changes in favorites
     favoritesRef.onValue.listen((event) {
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> values = event.snapshot.value as Map;
@@ -81,24 +84,38 @@ class _LocationState extends State<Location> {
       try {
         final attractionsData = <Map<String, dynamic>>[];
         final data = event.snapshot.value;
+        Set<String> states = {};
+        Set<String> types = {};
 
         if (data != null && data is Map<dynamic, dynamic>) {
           data.forEach((key, value) {
             if (value != null && value is Map<dynamic, dynamic> && value['hide'] != true) {
-              // Convert each attraction data to Map<String, dynamic>
               final attractionMap = <String, dynamic>{};
               value.forEach((k, v) {
                 attractionMap[k.toString()] = v;
               });
               attractionMap['id'] = key.toString();
               attractionsData.add(attractionMap);
+
+              // Collect unique states and types for filters
+              if (attractionMap['state'] != null) {
+                states.add(attractionMap['state'].toString());
+              }
+              if (attractionMap['type'] is List) {
+                for (var type in attractionMap['type']) {
+                  types.add(type.toString());
+                }
+              }
             }
           });
         }
 
         setState(() {
           attractions = attractionsData;
+          availableStates = states.toList()..sort();
+          availableTypes = types.toList()..sort();
           isLoading = false;
+          _applyFilters();
         });
       } catch (e) {
         print("Error processing data: $e");
@@ -115,15 +132,238 @@ class _LocationState extends State<Location> {
     });
   }
 
-  void _searchAttractions(String query) {
-    final results = attractions.where((attraction) {
-      final name = attraction['name']?.toString().toLowerCase() ?? '';
-      return name.contains(query.toLowerCase());
-    }).toList();
+  void _applyFilters() {
+    List<Map<String, dynamic>> results = attractions;
+
+    // Apply search filter
+    if (_searchController.text.isNotEmpty) {
+      results = results.where((attraction) {
+        final name = attraction['name']?.toString().toLowerCase() ?? '';
+        return name.contains(_searchController.text.toLowerCase());
+      }).toList();
+    }
+
+    // Apply state filter
+    if (selectedState != null) {
+      results = results.where((attraction) {
+        return attraction['state']?.toString() == selectedState;
+      }).toList();
+    }
+
+    // Apply type filter
+    if (selectedType != null) {
+      results = results.where((attraction) {
+        if (attraction['type'] is List) {
+          return (attraction['type'] as List).contains(selectedType);
+        }
+        return false;
+      }).toList();
+    }
+    results.sort((a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase()));
 
     setState(() {
       filteredAttractions = results;
     });
+  }
+
+  double _getLowestPrice(Map<String, dynamic> attraction) {
+    List<Map<String, dynamic>> pricing = [];
+    if (attraction['pricing'] is List) {
+      pricing = (attraction['pricing'] as List).map<Map<String, dynamic>>((item) {
+        return Map<String, dynamic>.from(
+          (item as Map).map((key, value) => MapEntry(key.toString(), value)),
+        );
+      }).toList();
+    }
+
+    if (pricing.isEmpty) return 0.0;
+
+    double lowest = double.infinity;
+    for (var priceItem in pricing) {
+      final price = priceItem['price'];
+      if (price != null) {
+        double priceValue = price is double ? price : double.tryParse(price.toString()) ?? 0.0;
+        if (priceValue < lowest) {
+          lowest = priceValue;
+        }
+      }
+    }
+    return lowest == double.infinity ? 0.0 : lowest;
+  }
+
+  String _getMainType(Map<String, dynamic> attraction) {
+    if (attraction['type'] is List && (attraction['type'] as List).isNotEmpty) {
+      return (attraction['type'] as List).first.toString();
+    }
+    return 'Attraction';
+  }
+
+  void _showAttractionDetails(Map<String, dynamic> attraction) {
+    final types = attraction['type'] is List
+        ? (attraction['type'] as List).join(', ')
+        : 'No type specified';
+
+    List<Map<String, dynamic>> pricing = [];
+    if (attraction['pricing'] is List) {
+      pricing = (attraction['pricing'] as List).map<Map<String, dynamic>>((item) {
+        return Map<String, dynamic>.from(
+          (item as Map).map((key, value) => MapEntry(key.toString(), value)),
+        );
+      }).toList();
+    }
+
+    List<String> images = [];
+    if (attraction['images'] is List) {
+      images = List<String>.from(attraction['images']);
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              AppBar(
+                title: Text(attraction['name'] ?? 'Attraction Details'),
+                backgroundColor: Color(0xFF0816A7),
+                foregroundColor: Colors.white,
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Images
+                      if (images.isNotEmpty)
+                        Container(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: images.length,
+                            itemBuilder: (context, imgIndex) {
+                              return Container(
+                                width: 250,
+                                margin: EdgeInsets.only(right: 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    images[imgIndex],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[300],
+                                        child: Center(
+                                          child: Icon(Icons.image_not_supported, size: 50),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      SizedBox(height: 16),
+
+                      // Location
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${attraction['address'] ?? ''}, ${attraction['city'] ?? ''}, ${attraction['state'] ?? ''}',
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+
+                      // Types
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Types: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Expanded(
+                            child: Text(types),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+
+                      // Pricing
+                      if (pricing.isNotEmpty) ...[
+                        Text(
+                          'Pricing:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        SizedBox(height: 8),
+                        Column(
+                          children: pricing.map((priceItem) {
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 8),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      priceItem['remark'] ?? 'Unknown',
+                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  Text(
+                                    'MYR ${priceItem['price']?.toStringAsFixed(2) ?? '0.00'}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0816A7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+
+                      // Description
+                      Text(
+                        'Description:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        attraction['description'] ?? 'No description available',
+                        style: TextStyle(height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _toggleFavorite(Map<String, dynamic> attraction) async {
@@ -137,7 +377,6 @@ class _LocationState extends State<Location> {
 
     final attractionId = attraction['id'];
 
-    // Create a reference to the user's favorites
     final userFavoritesRef = FirebaseDatabase.instance
         .ref()
         .child('users')
@@ -146,20 +385,17 @@ class _LocationState extends State<Location> {
         .child(attractionId);
 
     try {
-      // Optimistically update UI immediately
       setState(() {
         favoriteStatus[attractionId] = !(favoriteStatus[attractionId] ?? false);
       });
 
       final snapshot = await userFavoritesRef.once();
       if (snapshot.snapshot.value != null) {
-        // Already favorited - remove it
         await userFavoritesRef.remove();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Removed from favourites')),
         );
       } else {
-        // Add to favorites - store just the attraction ID or the whole object
         await userFavoritesRef.set({
           'id': attraction['id'],
           'name': attraction['name'],
@@ -171,7 +407,6 @@ class _LocationState extends State<Location> {
         );
       }
     } catch (e) {
-      // Revert the UI change if there was an error
       setState(() {
         favoriteStatus[attractionId] = !(favoriteStatus[attractionId] ?? false);
       });
@@ -185,11 +420,19 @@ class _LocationState extends State<Location> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Attractions List"),
+        title: Text("Attractions List",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Color(0xFF0816A7),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Column(
         children: [
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -202,210 +445,229 @@ class _LocationState extends State<Location> {
               child: Center(
                 child: TextField(
                   controller: _searchController,
-                  onChanged: _searchAttractions,
+                  onChanged: (value) => _applyFilters(),
                   decoration: InputDecoration(
-                    hintText: "Search",
+                    hintText: "Search attractions...",
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+                    prefixIcon: Icon(Icons.search, size: 20),
                   ),
                   style: TextStyle(fontSize: 14, color: Colors.black),
                 ),
               ),
             ),
           ),
+
+          // Filter Section
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                // State Filter
+                Expanded(
+                  child: Container(
+                    height: 35,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        hint: Text('Filter by State', style: TextStyle(fontSize: 12)),
+                        value: selectedState,
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('All States', style: TextStyle(fontSize: 12)),
+                          ),
+                          ...availableStates.map((state) => DropdownMenuItem<String>(
+                            value: state,
+                            child: Text(state, style: TextStyle(fontSize: 12)),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedState = value;
+                          });
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12),
+
+                // Type Filter
+                Expanded(
+                  child: Container(
+                    height: 35,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        hint: Text('Filter by Type', style: TextStyle(fontSize: 12)),
+                        value: selectedType,
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('All Types', style: TextStyle(fontSize: 12)),
+                          ),
+                          ...availableTypes.map((type) => DropdownMenuItem<String>(
+                            value: type,
+                            child: Text(type, style: TextStyle(fontSize: 12)),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedType = value;
+                          });
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+
+          // Results
           Expanded(
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
-                : attractions.isEmpty
+                : filteredAttractions.isEmpty
                 ? Center(child: Text("No attractions found"))
-                : Builder(
-              builder: (context) {
-                final displayList = _searchController.text.isEmpty ? attractions : filteredAttractions;
-                return ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: displayList.length,
-                  itemBuilder: (context, index) {
-                    final attraction = displayList[index];
-                    final attractionId = attraction['id'];
-                    final isFavorite = favoriteStatus[attractionId] ?? false;
-                    final types = attraction['type'] is List
-                        ? (attraction['type'] as List).join(', ')
-                        : 'No type specified';
+                : ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filteredAttractions.length,
+              itemBuilder: (context, index) {
+                final attraction = filteredAttractions[index];
+                final attractionId = attraction['id'];
+                final isFavorite = favoriteStatus[attractionId] ?? false;
+                final lowestPrice = _getLowestPrice(attraction);
+                final mainType = _getMainType(attraction);
 
-                    // Get pricing information
-                    List<Map<String, dynamic>> pricing = [];
-                    if (attraction['pricing'] is List) {
-                      pricing = (attraction['pricing'] as List).map<Map<String, dynamic>>((item) {
-                        return Map<String, dynamic>.from(
-                          (item as Map).map((key, value) => MapEntry(key.toString(), value)),
-                        );
-                      }).toList();
-                    }
-
-                    // Get images
-                    List<String> images = [];
-                    if (attraction['images'] is List) {
-                      images = List<String>.from(attraction['images']);
-                    }
-
-                    return Card(
-                      margin: EdgeInsets.only(bottom: 16),
-                      elevation: 4,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (images.isNotEmpty)
-                            Container(
-                              height: 200,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: images.length,
-                                itemBuilder: (context, imgIndex) {
-                                  return Container(
-                                    width: 200,
-                                    margin: EdgeInsets.only(right: 8),
-                                    child: Image.network(
-                                      images[imgIndex],
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.grey[300],
-                                          child: Center(
-                                            child: Icon(Icons.image_not_supported, size: 50),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        attraction['name'] ?? 'Unnamed Attraction',
-                                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                                        color: Colors.red,
-                                      ),
-                                      onPressed: () => _toggleFavorite(attraction),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(Icons.location_on, size: 16, color: Colors.grey),
-                                    SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        '${attraction['address'] ?? ''}, ${attraction['city'] ?? ''}, ${attraction['state'] ?? ''}',
-                                        style: TextStyle(color: Colors.grey[700]),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 16),
-                                // Types
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Types: ',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    Expanded(
-                                      child: Text(types),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                // Price information
-                                if (pricing.isNotEmpty) ...[
+                return Card(
+                  margin: EdgeInsets.only(bottom: 12),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    'Pricing:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Column(
-                                    children: pricing.map((priceItem) {
-                                      return Padding(
-                                        padding: EdgeInsets.only(bottom: 4),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                priceItem['remark'] ?? 'Unknown',
-                                                style: TextStyle(fontWeight: FontWeight.w500),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              flex: 1,
-                                              child: Text(
-                                                'MYR ${priceItem['price']?.toStringAsFixed(2) ?? '0.00'}',
-                                                textAlign: TextAlign.end,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  SizedBox(height: 8),
-                                  // Description (limited to 3 lines)
-                                  Text(
-                                    'Description:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    attraction['description'] ?? 'No description available',
-                                    maxLines: 3,
+                                    attraction['name'] ?? 'Unnamed Attraction',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  if ((attraction['description'] ?? '').toString().length > 100)
-                                    TextButton(
-                                      onPressed: () {
-                                        // Show full description dialog
-                                        showDialog(
-                                          context: context,
-                                          builder: (ctx) => AlertDialog(
-                                            title: Text(attraction['name'] ?? 'Description'),
-                                            content: SingleChildScrollView(
-                                              child: Text(attraction['description'] ?? ''),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(ctx).pop(),
-                                                child: Text("Close"),
-                                              ),
-                                            ],
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                                      SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          '${attraction['city'] ?? ''}, ${attraction['state'] ?? ''}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
                                           ),
-                                        );
-                                      },
-                                      child: Text('Read More'),
-                                    ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
-                              ],
+                              ),
                             ),
+                            IconButton(
+                              icon: Icon(
+                                isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: Colors.red,
+                                size: 24,
+                              ),
+                              onPressed: () => _toggleFavorite(attraction),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Color(0xFF0816A7).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                mainType,
+                                style: TextStyle(
+                                  color: Color(0xFF0816A7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Spacer(),
+                            if (lowestPrice > 0)
+                              Text(
+                                'From MYR ${lowestPrice.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0816A7),
+                                ),
+                              )
+                            else
+                              Text(
+                                'Price varies',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        SizedBox(height: 12),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => _showAttractionDetails(attraction),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF0816A7),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text('View Details'),
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
@@ -417,20 +679,20 @@ class _LocationState extends State<Location> {
         decoration: BoxDecoration(
           color: Colors.black,
           border: Border(
-            top: BorderSide(color: Colors.black, width: 0.5), // Top border
+            top: BorderSide(color: Colors.black, width: 0.5),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(  // Wrap in GestureDetector for navigation
+            GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => Favourite()),
                 );
               },
-              child: Column(  //Saved
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.favorite, color: Colors.white),
@@ -445,7 +707,7 @@ class _LocationState extends State<Location> {
                   MaterialPageRoute(builder: (context) => History()),
                 );
               },
-              child: Column(  //Mytrips
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.shopping_bag, color: Colors.white),
@@ -460,7 +722,7 @@ class _LocationState extends State<Location> {
                   MaterialPageRoute(builder: (context) => Homepage()),
                 );
               },
-              child: Column(  //Home
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.home, color: Colors.white),
@@ -475,7 +737,7 @@ class _LocationState extends State<Location> {
                   MaterialPageRoute(builder: (context) => Location()),
                 );
               },
-              child: Column(  //Attraction
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.park, color: Color(0xFF0816A7)),
@@ -490,7 +752,7 @@ class _LocationState extends State<Location> {
                   MaterialPageRoute(builder: (context) => Profile()),
                 );
               },
-              child: Column(  //Profile
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.person, color: Colors.white),

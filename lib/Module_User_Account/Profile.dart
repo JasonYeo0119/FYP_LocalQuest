@@ -9,7 +9,6 @@ import 'package:localquest/Module_User_Account/Login.dart';
 import 'package:flutter/material.dart';
 import 'package:localquest/Module_User_Account/Profiledetails.dart';
 
-
 @override
 void Saved(BuildContext ctx) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
@@ -45,68 +44,61 @@ void Logout(BuildContext ctx) {
   }));
 }
 
-@override
-void SavedIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Favourite();
-  }));
-}
-
-@override
-void MytripsIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return History();
-  }));
-}
-
-@override
-void HomeIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Homepage();
-  }));
-}
-
-@override
-void AttractionsIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Location();
-  }));
-}
-
-@override
-void ProfileIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Profile();
-  }));
-}
-
-@override
-void ManageProfileDetails(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Profiledetails();
-  }));
-}
-
 void showLogoutConfirmation(BuildContext context) {
   showDialog(
     context: context,
+    barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text("Confirm Log out"),
-        content: Text("Are you sure you want to log out?"),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 10),
+            Text(
+              "Confirm Log out",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to log out?",
+          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+        ),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pop();
             },
-            child: Text("Cancel", style: TextStyle(color: Colors.white)),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-              Logout(context); // Call the logout function
+              Navigator.of(context).pop();
+              Logout(context);
             },
-            child: Text("Log out", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Log out",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ),
         ],
       );
@@ -119,448 +111,346 @@ class Profile extends StatefulWidget {
   _ProfileState createState() => _ProfileState();
 }
 
-
-class _ProfileState extends State<Profile> {
-
-  final user=FirebaseAuth.instance.currentUser;  //Retrieve current logged in user
-  String userName = ""; // Placeholder text while fetching data
+class _ProfileState extends State<Profile> with TickerProviderStateMixin {
+  final user = FirebaseAuth.instance.currentUser;
+  String userName = "";
+  bool isLoading = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    fetchUserName(); // Call function to get user name from database
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    fetchUserName();
   }
 
-  // 🔹 Fetch User Name from Firebase Realtime Database
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   fetchUserName() async {
     if (user != null) {
       DatabaseReference userRef = FirebaseDatabase.instance.ref().child("Users").child(user!.uid);
-      DatabaseEvent event = await userRef.once(); // Get data once
+      DatabaseEvent event = await userRef.once();
 
       if (event.snapshot.exists) {
         setState(() {
-          userName = event.snapshot.child("name").value.toString(); // Retrieve name
+          userName = event.snapshot.child("name").value.toString();
+          isLoading = false;
         });
+        _animationController.forward();
       } else {
         setState(() {
           userName = "User not found";
+          isLoading = false;
         });
+        _animationController.forward();
       }
     }
+  }
+
+  Widget _buildProfileOption({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 2,
+        shadowColor: Colors.black12,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (iconColor ?? Color(0xFF0816A7)).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor ?? Color(0xFF0816A7),
+                    size: 24,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.grey[400],
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text("Profile"),
+        title: Text(
+          "Profile",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Color(0xFF0816A7),
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 727,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
-                children: [
-                  Positioned(  //Usernamebar
-                    left: 0,
-                    top: 0,
-                    child: Container(
-                      width: 500,
-                      height: 100,
-                      color: Colors.white,
-                    ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Header Section with Gradient
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF0816A7),
+                      Color(0xFF0816A7).withOpacity(0.8),
+                    ],
                   ),
-                  Positioned(
-                    left: 20,
-                    top: 20,
-                    child: Text('Hello ! $userName',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 24,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(height: 20),
+                    // Welcome Text
+                    if (isLoading)
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
+                    else
+                      Column(
+                        children: [
+                          Text(
+                            'Hello!',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            userName,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
+                    SizedBox(height: 30),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              // Profile Options
+              _buildProfileOption(
+                icon: Icons.settings,
+                title: 'Manage account details',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Profiledetails()),
+                ),
+              ),
+
+              _buildProfileOption(
+                icon: Icons.favorite,
+                title: 'View saved',
+                onTap: () => Saved(context),
+                iconColor: Colors.red,
+              ),
+
+              _buildProfileOption(
+                icon: Icons.shopping_bag,
+                title: 'My trips',
+                onTap: () => Mybookings(context),
+                iconColor: Colors.green,
+              ),
+
+              _buildProfileOption(
+                icon: Icons.park,
+                title: 'View attractions list',
+                onTap: () => Attractionlist(context),
+                iconColor: Colors.teal,
+              ),
+
+              _buildProfileOption(
+                icon: Icons.question_answer,
+                title: 'Chat with AI Chatbot',
+                onTap: () => Faq(context),
+                iconColor: Colors.purple,
+              ),
+
+              SizedBox(height: 30),
+
+              // Logout Button
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => showLogoutConfirmation(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 2,
                   ),
-                  Positioned(  //Manageaccdetailsbar
-                    left: 0,
-                    top: 100,
-                    child: GestureDetector(
-                      onTap: () {
-                        ManageProfileDetails(context);
-                      },
-                    child: Container(
-                      width: 500,
-                      height: 60,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 1,
-                          )
-                      ),
-                    ),
-                  ),
-                  ),
-                  Positioned(  //Manageaccdetailicon
-                    left: 20,
-                    top: 112,
-                    child: Icon(
-                      Icons.settings,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                  Positioned(
-                    left: 80,
-                    top: 120,
-                    child: GestureDetector(
-                      onTap: () {
-                        ManageProfileDetails(context);
-                      },
-                    child: Text(
-                      'Manage account details',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    ),
-                  ),
-                  Positioned(  //Savedbar
-                    left: 0,
-                    top: 159,
-                    child: GestureDetector(
-                      onTap: () {
-                        Saved(context);
-                      },
-                      child: Container(
-                        width: 500,
-                        height: 60,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 1,
-                            )
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Savedicon
-                    left: 20,
-                    top: 171,
-                    child: Icon(
-                      Icons.favorite,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                  Positioned(
-                    left: 80,
-                    top: 179,
-                    child: GestureDetector(
-                      onTap: () {
-                        Saved(context);
-                      },
-                      child: Text(
-                        'View saved',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Mytripssbar
-                    left: 0,
-                    top: 218,
-                    child: GestureDetector(
-                      onTap: () {
-                        Mybookings(context);
-                      },
-                      child: Container(
-                        width: 500,
-                        height: 60,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 1,
-                            )
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Mytripsicon
-                    left: 20,
-                    top: 230,
-                    child: Icon(
-                      Icons.shopping_bag,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                  Positioned(
-                    left: 80,
-                    top: 238,
-                    child: GestureDetector(
-                      onTap: () {
-                        Mybookings(context);
-                      },
-                      child: Text(
-                        'My trips',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Attractionslistbar
-                    left: 0,
-                    top: 277,
-                    child: GestureDetector(
-                      onTap: () {
-                        Attractionlist(context);
-                      },
-                      child: Container(
-                        width: 500,
-                        height: 60,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 1,
-                            )
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Attractionslisticon
-                    left: 20,
-                    top: 289,
-                    child: Icon(
-                      Icons.park,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                  Positioned(
-                    left: 80,
-                    top: 297,
-                    child: GestureDetector(
-                      onTap: () {
-                        Attractionlist(context);
-                      },
-                      child: Text(
-                        'View attractions list',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //FAQbar
-                    left: 0,
-                    top: 336,
-                    child: GestureDetector(
-                      onTap: () {
-                        Faq(context);
-                      },
-                      child: Container(
-                        width: 500,
-                        height: 60,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 1,
-                            )
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //FAQicon
-                    left: 20,
-                    top: 348,
-                    child: Icon(
-                      Icons.question_answer,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                  Positioned(
-                    left: 80,
-                    top: 356,
-                    child: GestureDetector(
-                      onTap: () {
-                        Faq(context);
-                      },
-                      child: Text(
-                        'Chat with AI Chatbot',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Logoutbutton
-                    left: 124,
-                    top: 430,
-                    child: GestureDetector(
-                      onTap: () {
-                        showLogoutConfirmation(context);
-                      },
-                      child: Container(
-                        width: 150,
-                        height: 40,
-                        decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 1,
-                            )
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 177,
-                    top: 436,
-                    child: GestureDetector(
-                      onTap: () {
-                        showLogoutConfirmation(context);
-                      },
-                      child: Text(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout, size: 20),
+                      SizedBox(width: 8),
+                      Text(
                         'Log out',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                  Positioned(  //Logout Icon
-                    left: 132,
-                    top: 435,
-                    child: GestureDetector(
-                      onTap: () {
-                        showLogoutConfirmation(context);
-                      },
-                      child: Icon(Icons.login_rounded, size: 30),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.symmetric(vertical: 10),
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.black,
-          border: Border(
-            top: BorderSide(color: Colors.black, width: 0.5), // Top border
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Favourite()),
-                );
-              },
-              child: Column(  //Saved
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.favorite, color: Colors.white),
-                  Text("Saved", style: TextStyle(color: Colors.white)),
-                ],
+            _buildBottomNavItem(
+              icon: Icons.favorite,
+              label: "Saved",
+              isActive: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Favourite()),
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => History()),
-                );
-              },
-              child: Column(  //Mytrips
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shopping_bag, color: Colors.white),
-                  Text("My Trips", style: TextStyle(color: Colors.white)),
-                ],
+            _buildBottomNavItem(
+              icon: Icons.shopping_bag,
+              label: "My Trips",
+              isActive: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => History()),
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Homepage()),
-                );
-              },
-              child: Column(  //Home
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home, color: Colors.white),
-                  Text("Home", style: TextStyle(color: Colors.white)),
-                ],
+            _buildBottomNavItem(
+              icon: Icons.home,
+              label: "Home",
+              isActive: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Homepage()),
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Location()),
-                );
-              },
-              child: Column(  //Attraction
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.park, color: Colors.white),
-                  Text("Attractions", style: TextStyle(color: Colors.white)),
-                ],
+            _buildBottomNavItem(
+              icon: Icons.park,
+              label: "Attractions",
+              isActive: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Location()),
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Profile()),
-                );
-              },
-              child: Column(  //Profile
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person, color: Color(0xFF0816A7)),
-                  Text("Profile", style: TextStyle(color: Color(0xFF0816A7))),
-                ],
+            _buildBottomNavItem(
+              icon: Icons.person,
+              label: "Profile",
+              isActive: true,
+              onTap: () {}, // Current page
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? Color(0xFF0816A7) : Colors.white70,
+              size: 24,
+            ),
+            SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Color(0xFF0816A7) : Colors.white70,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],

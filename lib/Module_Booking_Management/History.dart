@@ -40,23 +40,30 @@ class History extends StatefulWidget {
   _HistoryState createState() => _HistoryState();
 }
 
-class _HistoryState extends State<History> {
+class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  List<Map<String, dynamic>> _bookings = [];
-  List<Map<String, dynamic>> _filteredBookings = [];
+  List<Map<String, dynamic>> _allBookings = [];
+  List<Map<String, dynamic>> _upcomingBookings = [];
+  List<Map<String, dynamic>> _completedBookings = [];
+  List<Map<String, dynamic>> _filteredUpcoming = [];
+  List<Map<String, dynamic>> _filteredCompleted = [];
   bool _isLoading = true;
   TextEditingController _searchController = TextEditingController();
+
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadBookings();
     _searchController.addListener(_filterBookings);
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -81,22 +88,50 @@ class _HistoryState extends State<History> {
             loadedBookings.add(booking);
           });
 
-          // Sort bookings by booking date (newest first)
-          loadedBookings.sort((a, b) {
-            DateTime dateA = DateTime.parse(a['bookingDate'] ?? DateTime.now().toIso8601String());
-            DateTime dateB = DateTime.parse(b['bookingDate'] ?? DateTime.now().toIso8601String());
+          // Update booking statuses and separate upcoming and completed bookings
+          List<Map<String, dynamic>> upcoming = [];
+          List<Map<String, dynamic>> completed = [];
+
+          for (var booking in loadedBookings) {
+            // Update status based on trip date
+            await _updateBookingStatus(booking, user.uid);
+
+            if (_isUpcoming(booking)) {
+              upcoming.add(booking);
+            } else {
+              completed.add(booking);
+            }
+          }
+
+          // Sort upcoming bookings by departure date (closest first)
+          upcoming.sort((a, b) {
+            DateTime dateA = _getRelevantDate(a);
+            DateTime dateB = _getRelevantDate(b);
+            return dateA.compareTo(dateB);
+          });
+
+          // Sort completed bookings by departure date (most recent first)
+          completed.sort((a, b) {
+            DateTime dateA = _getRelevantDate(a);
+            DateTime dateB = _getRelevantDate(b);
             return dateB.compareTo(dateA);
           });
 
           setState(() {
-            _bookings = loadedBookings;
-            _filteredBookings = loadedBookings;
+            _allBookings = loadedBookings;
+            _upcomingBookings = upcoming;
+            _completedBookings = completed;
+            _filteredUpcoming = upcoming;
+            _filteredCompleted = completed;
             _isLoading = false;
           });
         } else {
           setState(() {
-            _bookings = [];
-            _filteredBookings = [];
+            _allBookings = [];
+            _upcomingBookings = [];
+            _completedBookings = [];
+            _filteredUpcoming = [];
+            _filteredCompleted = [];
             _isLoading = false;
           });
         }
@@ -109,13 +144,76 @@ class _HistoryState extends State<History> {
     }
   }
 
+  Future<void> _updateBookingStatus(Map<String, dynamic> booking, String userId) async {
+    try {
+      DateTime relevantDate = _getRelevantDate(booking);
+      String currentStatus = booking['status']?.toString().toLowerCase() ?? 'pending';
+
+      // Only update if the trip has passed and status is not already completed or cancelled
+      if (relevantDate.isBefore(DateTime.now()) &&
+          currentStatus != 'completed' &&
+          currentStatus != 'cancelled') {
+
+        // Update the booking status to completed
+        booking['status'] = 'completed';
+
+        // Update in Firebase database
+        await _database
+            .child('users')
+            .child(userId)
+            .child('bookings')
+            .child(booking['key'])
+            .child('status')
+            .set('completed');
+
+        print('Updated booking ${booking['bookingId']} status to completed');
+      }
+    } catch (e) {
+      print('Error updating booking status: $e');
+    }
+  }
+
+  DateTime _getRelevantDate(Map<String, dynamic> booking) {
+    // Priority: returnDate > departDate > bookingDate
+    // Use return date first as it's when the trip actually ends
+    try {
+      if (booking['returnDate'] != null) {
+        return DateTime.parse(booking['returnDate']);
+      } else if (booking['departDate'] != null) {
+        return DateTime.parse(booking['departDate']);
+      } else {
+        return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
+      }
+    } catch (e) {
+      return DateTime.now();
+    }
+  }
+
+  bool _isUpcoming(Map<String, dynamic> booking) {
+    DateTime relevantDate = _getRelevantDate(booking);
+    String status = booking['status']?.toString().toLowerCase() ?? 'pending';
+
+    // A booking is upcoming if:
+    // 1. The relevant date is in the future, OR
+    // 2. The status is confirmed/pending and the date hasn't passed by more than 1 day
+    return relevantDate.isAfter(DateTime.now()) ||
+        (status != 'completed' && status != 'cancelled' &&
+            relevantDate.isAfter(DateTime.now().subtract(Duration(days: 1))));
+  }
+
   void _filterBookings() {
     String query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredBookings = _bookings.where((booking) {
+      _filteredUpcoming = _upcomingBookings.where((booking) {
         String transportName = booking['transport']['name']?.toString().toLowerCase() ?? '';
-        String status = booking['status']?.toString().toLowerCase() ?? '';
-        return transportName.contains(query) || status.contains(query);
+        String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
+        return transportName.contains(query) || bookingId.contains(query);
+      }).toList();
+
+      _filteredCompleted = _completedBookings.where((booking) {
+        String transportName = booking['transport']['name']?.toString().toLowerCase() ?? '';
+        String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
+        return transportName.contains(query) || bookingId.contains(query);
       }).toList();
     });
   }
@@ -144,6 +242,8 @@ class _HistoryState extends State<History> {
     switch (status.toLowerCase()) {
       case 'confirmed':
         return Colors.green;
+      case 'completed':
+        return Colors.blue;
       case 'pending':
         return Colors.orange;
       case 'cancelled':
@@ -153,88 +253,144 @@ class _HistoryState extends State<History> {
     }
   }
 
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 16),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingsList(List<Map<String, dynamic>> bookings) {
+    if (bookings.isEmpty) {
+      return _buildEmptyState(
+        _tabController.index == 0 ? "No upcoming trips" : "No completed trips",
+        _tabController.index == 0
+            ? "Your upcoming bookings will appear here"
+            : "Your completed bookings will appear here",
+        _tabController.index == 0 ? Icons.schedule : Icons.history,
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16),
+      itemCount: bookings.length,
+      itemBuilder: (context, index) {
+        final booking = bookings[index];
+        return _buildBookingCard(booking);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("My Trips"),
+        title: Text("My Trips",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),),
         backgroundColor: Color(0xFF0816A7),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Search bar
-              Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(width: 1),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Search bookings...",
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    prefixIcon: Icon(Icons.search, size: 20),
-                  ),
-                  style: TextStyle(fontSize: 14, color: Colors.black),
-                ),
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.schedule, size: 20),
+                  SizedBox(width: 8),
+                  Text('Upcoming (${_upcomingBookings.length})'),
+                ],
               ),
-              SizedBox(height: 20),
-
-              // Loading indicator or bookings list
-              if (_isLoading)
-                Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF0816A7),
-                  ),
-                )
-              else if (_filteredBookings.isEmpty)
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inbox,
-                        size: 80,
-                        color: Colors.grey[400],
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        _bookings.isEmpty ? "No bookings yet" : "No bookings found",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      if (_bookings.isEmpty)
-                        Text(
-                          "Your completed bookings will appear here",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                    ],
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: _filteredBookings.length,
-                  itemBuilder: (context, index) {
-                    final booking = _filteredBookings[index];
-                    return _buildBookingCard(booking);
-                  },
-                ),
-            ],
-          ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history, size: 20),
+                  SizedBox(width: 8),
+                  Text('Completed (${_completedBookings.length})'),
+                ],
+              ),
+            ),
+          ],
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
         ),
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Container(
+            margin: EdgeInsets.all(16),
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(width: 1),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Search bookings...",
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                prefixIcon: Icon(Icons.search, size: 20),
+              ),
+              style: TextStyle(fontSize: 14, color: Colors.black),
+            ),
+          ),
+
+          // Tab content
+          Expanded(
+            child: _isLoading
+                ? Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF0816A7),
+              ),
+            )
+                : TabBarView(
+              controller: _tabController,
+              children: [
+                // Upcoming bookings
+                _buildBookingsList(_filteredUpcoming),
+                // Completed bookings
+                _buildBookingsList(_filteredCompleted),
+              ],
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(vertical: 10),
@@ -452,12 +608,6 @@ class _HistoryState extends State<History> {
                   'Payment: ${booking['paymentMethod'] ?? 'N/A'}',
                   style: TextStyle(color: Colors.grey[700], fontSize: 12),
                 ),
-                if (booking['cardLastFour'] != null) ...[
-                  Text(
-                    ' ending in ${booking['cardLastFour']}',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                  ),
-                ],
               ],
             ),
             SizedBox(height: 12),

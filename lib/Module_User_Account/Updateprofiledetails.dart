@@ -288,12 +288,6 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
     );
   }
 
-  bool isValidEmail(String email) {
-    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
-    RegExp regex = RegExp(pattern);
-    return regex.hasMatch(email);
-  }
-
   bool isPasswordStrong(String password) {
     if (password.length < 8) return false;
     if (!password.contains(RegExp(r'[A-Z]'))) return false;
@@ -336,12 +330,6 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
           "phoneCode": _selectedCountry,
         });
         _showSuccessSnackBar("Profile updated successfully!");
-      }
-      else if (widget.changeType == 'email') {
-        await currentUser.updateEmail(emailController.text.trim());
-        await currentUser.sendEmailVerification();
-        await userRef.update({"email": emailController.text.trim()});
-        _showSuccessSnackBar("Email updated! Please verify your new email.");
       }
       else if (widget.changeType == 'password') {
         await currentUser.updatePassword(passwordController.text);
@@ -576,8 +564,6 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
 
   String _getUpdateTitle() {
     switch (widget.changeType) {
-      case 'email':
-        return 'Update Email Address';
       case 'password':
         return 'Update Password';
       default:
@@ -587,24 +573,6 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
 
   List<Widget> _buildFormFields() {
     switch (widget.changeType) {
-      case 'email':
-        return [
-          _buildFormField(
-            label: 'New Email Address',
-            controller: emailController,
-            icon: Icons.email_outlined,
-            isEmail: true,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Email is required';
-              }
-              if (!isValidEmail(value)) {
-                return 'Please enter a valid email address';
-              }
-              return null;
-            },
-          ),
-        ];
       case 'password':
         return [
           _buildFormField(

@@ -11,76 +11,9 @@ import 'package:localquest/Module_User_Account/Favourite.dart';
 import 'package:localquest/Module_User_Account/Profile.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-@override
-void toStay(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookinghotelmain();
-  }));
-}
-
-@override
-void toTransport(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingtransportmain();
-  }));
-}
-
-@override
-void toAttraction(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingattractionmain();
-  }));
-}
-
-@override
-void toAllinone(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Bookingallinone();
-  }));
-}
-
-@override
-void toViewdetails(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return History();
-  }));
-}
-
-@override
-void SpecialDeals(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Deals();
-  }));
-}
-
-@override
-void SavedIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Favourite();
-  }));
-}
-
-@override
-void MytripsIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return History();
-  }));
-}
-
-@override
-void AttractionsIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Location();
-  }));
-}
-
-@override
-void ProfileIcon(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Profile();
-  }));
-}
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class Homepage extends StatefulWidget {
   @override
@@ -88,529 +21,503 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  Map<String, dynamic>? _nextUpcomingTrip;
+  bool _isLoadingTrip = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNextUpcomingTrip();
+  }
+
+  Future<void> _loadNextUpcomingTrip() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        DatabaseEvent event = await _database
+            .child('users')
+            .child(user.uid)
+            .child('bookings')
+            .once();
+
+        if (event.snapshot.exists) {
+          Map<dynamic, dynamic> bookingsData = event.snapshot.value as Map<dynamic, dynamic>;
+          List<Map<String, dynamic>> upcomingBookings = [];
+
+          bookingsData.forEach((key, value) {
+            Map<String, dynamic> booking = Map<String, dynamic>.from(value);
+            booking['key'] = key;
+
+            if (_isUpcoming(booking)) {
+              upcomingBookings.add(booking);
+            }
+          });
+
+          // Sort by closest departure date
+          upcomingBookings.sort((a, b) {
+            DateTime dateA = _getRelevantDate(a);
+            DateTime dateB = _getRelevantDate(b);
+            return dateA.compareTo(dateB);
+          });
+
+          setState(() {
+            _nextUpcomingTrip = upcomingBookings.isNotEmpty ? upcomingBookings.first : null;
+            _isLoadingTrip = false;
+          });
+        } else {
+          setState(() {
+            _nextUpcomingTrip = null;
+            _isLoadingTrip = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading upcoming trip: $e');
+      setState(() {
+        _nextUpcomingTrip = null;
+        _isLoadingTrip = false;
+      });
+    }
+  }
+
+  DateTime _getRelevantDate(Map<String, dynamic> booking) {
+    try {
+      if (booking['returnDate'] != null) {
+        return DateTime.parse(booking['returnDate']);
+      } else if (booking['departDate'] != null) {
+        return DateTime.parse(booking['departDate']);
+      } else {
+        return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
+      }
+    } catch (e) {
+      return DateTime.now();
+    }
+  }
+
+  bool _isUpcoming(Map<String, dynamic> booking) {
+    DateTime relevantDate = _getRelevantDate(booking);
+    String status = booking['status']?.toString().toLowerCase() ?? 'pending';
+
+    return relevantDate.isAfter(DateTime.now()) ||
+        (status != 'completed' && status != 'cancelled' &&
+            relevantDate.isAfter(DateTime.now().subtract(Duration(days: 1))));
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'N/A';
+    try {
+      DateTime date = DateTime.parse(dateString);
+      return DateFormat('d MMMM yyyy').format(date);
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  String _formatTime(String? dateString) {
+    if (dateString == null) return 'N/A';
+    try {
+      DateTime date = DateTime.parse(dateString);
+      return DateFormat('HH:mm').format(date);
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           "LocalQuest",
           style: GoogleFonts.irishGrover(
               fontSize: 28,
-              color:Colors.white,
+              color: Colors.white,
               fontWeight: FontWeight.w400
           ),
         ),
         backgroundColor: Color(0xFF0816A7),
         automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 727,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
-                children: [
-                  Positioned(  //Orange box
-                    left: 64,
-                    top: 40,
-                    child: Opacity(
-                      opacity: 0.80,
-                      child: Container(
-                        width: 128,
-                        height: 135,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                        ),
-                      ),
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Main Service Buttons Grid
+              Container(
+                height: screenHeight * 0.43,
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  physics: NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildServiceCard(
+                      'Stay',
+                      Icons.hotel_outlined,
+                      [Color(0xFFFF4502), Color(0xFFFFFF00)],
+                      Colors.black54,
+                          () => _navigateToStay(),
                     ),
-                  ),
-                  Positioned(  //Stayicon
-                    left: 84,
-                    top: 50,
-                    child: GestureDetector(
-                      onTap: () {
-                        toStay(context);
-                      },
-                      child: Opacity(
-                        opacity: 0.8,
-                        child: Icon(
-                          Icons.hotel_outlined, // Choose an icon
-                          color: Color(0xFFF16908),
-                          size: 90, // Adjust the size
-                        ),
-                      ),
+                    _buildServiceCard(
+                      'Transport',
+                      Icons.directions_train_outlined,
+                      [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                      Colors.black54,
+                          () => _navigateToTransport(),
                     ),
-                  ),
-                  Positioned(
-                    left: 103,
-                    top: 140,
-                    child: GestureDetector(
-                      onTap: () {
-                        toStay(context);
-                      },
-                      child: Text(
-                        'Stay',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.irishGrover(
-                            fontSize: 20,
-                            color:Colors.black,
-                            fontWeight: FontWeight.w400
-                        ), // Style
-                      ),
+                    _buildServiceCard(
+                      'Attractions',
+                      Icons.park_outlined,
+                      [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
+                      Colors.black54,
+                          () => _navigateToAttraction(),
                     ),
-                  ),
-                  Positioned(  //Purplebox
-                    left: 217,
-                    top: 40,
-                    child: Opacity(
-                      opacity: 0.80,
-                      child: Container(
-                        width: 128,
-                        height: 135,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                        ),
-                      ),
+                    _buildServiceCard(
+                      'Generate\nItinerary',
+                      Icons.dashboard_outlined,
+                      [Color(0xFF02ED64), Color(0xFFFFFA02)],
+                      Colors.black54,
+                          () => _navigateToAllinone(),
                     ),
-                  ),
-                  Positioned(  //Trainicon
-                    left: 235,
-                    top: 55,
-                    child: GestureDetector(
-                      onTap: () {
-                        toTransport(context);
-                      },
-                      child: Opacity(
-                        opacity: 0.8,
-                        child: Icon(
-                          Icons.directions_train_outlined, // Choose an icon
-                          color: Color(0xFF720ACD),
-                          size: 90, // Adjust the size
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 235,
-                    top: 140,
-                    child: GestureDetector(
-                      onTap: () {
-                        toTransport(context);
-                      },
-                      child: Text(
-                        'Transport',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.irishGrover(
-                            fontSize: 20,
-                            color:Colors.black,
-                            fontWeight: FontWeight.w400
-                        ), // Style
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Bluebox
-                    left: 64,
-                    top: 198,
-                    child: Opacity(
-                      opacity: 0.80,
-                      child: Container(
-                        width: 128,
-                        height: 135,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Attractionicon
-                    left: 82,
-                    top: 207,
-                    child: GestureDetector(
-                      onTap: () {
-                        toAttraction(context);
-                      },
-                      child: Opacity(
-                        opacity: 0.8,
-                        child: Icon(
-                          Icons.park_outlined, // Choose an icon
-                          color: Color(0xFF0239FF),
-                          size: 90, // Adjust the size
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 77,
-                    top: 295,
-                    child: GestureDetector(
-                      onTap: () {
-                        toAttraction(context);
-                      },
-                      child: Text(
-                        'Attractions',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.irishGrover(
-                            fontSize: 20,
-                            color:Colors.black,
-                            fontWeight: FontWeight.w400
-                        ), // Style
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Greenbox
-                    left: 217,
-                    top: 198,
-                    child: Opacity(
-                      opacity: 0.80,
-                      child: Container(
-                        width: 128,
-                        height: 135,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF02ED64), Color(0xFFFFFA02)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Allinoneicon
-                    left: 235,
-                    top: 207,
-                    child: GestureDetector(
-                      onTap: () {
-                        toAllinone(context);
-                      },
-                      child: Opacity(
-                        opacity: 0.8,
-                        child: Icon(
-                          Icons.dashboard_outlined, // Choose an icon
-                          color: Color(0xFF219407),
-                          size: 90, // Adjust the size
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 234,
-                    top: 295,
-                    child: GestureDetector(
-                      onTap: () {
-                        toAllinone(context);
-                      },
-                      child: Text(
-                        'All-in-One',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.irishGrover(
-                            fontSize: 20,
-                            color:Colors.black,
-                            fontWeight: FontWeight.w400
-                        ), // Style
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 32,
-                    top: 375,
-                    child: Text(
-                      'Upcoming Trip',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Whitebarshowcomingtrip
-                    left: 30,
-                    top: 405,
-                    child: Container(
-                      width: 348,
-                      height: 76,
-                      decoration: ShapeDecoration(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(17),
-                        ),
-                        shadows: [
-                          BoxShadow(
-                            color: Color(0x3F000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 4),
-                            spreadRadius: 0,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 47,
-                    top: 420,
-                    child: Text(
-                      'Bus [ Penang Sentral - KL Sentral ]',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 47,
-                    top: 440,
-                    child: Text(
-                      'KKKL Express ',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 47,
-                    top: 460,
-                    child: Text(
-                      '3 February 2025 - 14:30 - Seat 03',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 219,
-                    top: 460,
-                    child: Text(
-                      'Confirmed',
-                      style: TextStyle(
-                        color: Color(0xFF0FC106),
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 302,
-                    top: 460,
-                    child: GestureDetector(
-                      onTap: () {
-                        toViewdetails(context);
-                      },
-                      child: Text(
-                        'View Details',
-                        style: TextStyle(
-                          color: Color(0xFF0181F9),
-                          fontSize: 10,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 280,
-                    top: 420,
-                    child: Text(
-                      '5h 12m',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 265,
-                    top: 427,
-                    child: Container(
-                      width: 13,
-                      decoration: ShapeDecoration(
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(
-                            width: 0.50,
-                            strokeAlign: BorderSide.strokeAlignCenter,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 317,
-                    top: 427,
-                    child: Container(
-                      width: 13,
-                      decoration: ShapeDecoration(
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(
-                            width: 0.50,
-                            strokeAlign: BorderSide.strokeAlignCenter,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 32,
-                    top: 520,
-                    child: GestureDetector(
-                      onTap: () {
-                        SpecialDeals(context);
-                      },
-                    child: Text(
-                      'Special Deals',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  ),
-                  Positioned(  //Deals image
-                    left: 31,
-                    top: 550,
-                    child: Container(
-                      width: 188,
-                      height: 134,
-                      decoration: ShapeDecoration(
-                        image: DecorationImage(
-                          image: AssetImage('lib/Image/special deals 1.jpg'),
-                          fit: BoxFit.fill,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(17),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              SizedBox(height: 12),
+
+              // Upcoming Trip Section
+              Text(
+                'Upcoming Trip',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12),
+
+              _buildUpcomingTripCard(),
+
+              SizedBox(height: 28),
+
+              // Special Deals Tab
+              GestureDetector(
+                onTap: () => _navigateToDeals(),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(17),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x3F000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Special Deals',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF0816A7),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 18),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: Colors.black,
-          border: Border(
-            top: BorderSide(color: Colors.black, width: 0.5), // Top border
-          ),
+          border: Border(top: BorderSide(color: Colors.black, width: 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Favourite()),
-                );
-              },
-              child: Column(  //Saved
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.favorite, color: Colors.white),
-                  Text("Saved", style: TextStyle(color: Colors.white)),
-                ],
-              ),
+            _buildBottomNavItem(Icons.favorite, "Saved", Colors.white, () => _navigateToFavourite()),
+            _buildBottomNavItem(Icons.shopping_bag, "My Trips", Colors.white, () => _navigateToHistory()),
+            _buildBottomNavItem(Icons.home, "Home", Color(0xFF0816A7), () {}),
+            _buildBottomNavItem(Icons.park, "Attractions", Colors.white, () => _navigateToLocation()),
+            _buildBottomNavItem(Icons.person, "Profile", Colors.white, () => _navigateToProfile()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceCard(String title, IconData icon, List<Color> gradientColors, Color iconColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
+          ),
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: Offset(0, 4),
             ),
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => History()),
-                );
-              },
-              child: Column(  //Mytrips
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shopping_bag, color: Colors.white),
-                  Text("My Trips", style: TextStyle(color: Colors.white)),
-                ],
-              ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: iconColor,
+              size: 60,
             ),
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-              },
-            child: Column(  //Home
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.home, color: Color(0xFF0816A7)),
-                Text("Home", style: TextStyle(color: Color(0xFF0816A7))),
-              ],
-            ),
-            ),
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Location()),
-                );
-              },
-              child: Column(  //Attraction
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.park, color: Colors.white),
-                  Text("Attractions", style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-            GestureDetector(  // Wrap in GestureDetector for navigation
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Profile()),
-                );
-              },
-              child: Column(  //Profile
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person, color: Colors.white),
-                  Text("Profile", style: TextStyle(color: Colors.white)),
-                ],
+            SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.irishGrover(
+                fontSize: 16,
+                color: Colors.black,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildUpcomingTripCard() {
+    if (_isLoadingTrip) {
+      return Container(
+        width: double.infinity,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF0816A7),
+          ),
+        ),
+      );
+    }
+
+    if (_nextUpcomingTrip == null) {
+      return Container(
+        width: double.infinity,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.schedule, color: Colors.grey[400], size: 32),
+              SizedBox(height: 8),
+              Text(
+                'No upcoming trips',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final trip = _nextUpcomingTrip!;
+    final transportName = trip['transport']?['name'] ?? 'Transport';
+    final departDate = _formatDate(trip['departDate']);
+    final departTime = trip['selectedTime'] ?? _formatTime(trip['departDate']);
+    final seats = trip['selectedSeats']?.isNotEmpty == true ? trip['selectedSeats'].join(', ') : 'N/A';
+    final status = trip['status'] ?? 'pending';
+
+    return GestureDetector(
+      onTap: () => _navigateToHistory(),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    transportName,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _getStatusColor(status)),
+                  ),
+                  child: Text(
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(status),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              '$departDate - $departTime - Seat $seats',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'View Details',
+              style: TextStyle(
+                color: Color(0xFF0181F9),
+                fontSize: 12,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+  Widget _buildBottomNavItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          Text(label, style: TextStyle(color: color)),
+        ],
+      ),
+    );
+  }
+
+  // Navigation methods
+  void _navigateToStay() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Bookinghotelmain()));
+  }
+
+  void _navigateToTransport() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingtransportmain()));
+  }
+
+  void _navigateToAttraction() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingattractionmain()));
+  }
+
+  void _navigateToAllinone() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingallinone()));
+  }
+
+  void _navigateToHistory() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => History()));
+  }
+
+  void _navigateToDeals() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Deals()));
+  }
+
+  void _navigateToFavourite() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Favourite()));
+  }
+
+  void _navigateToLocation() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Location()));
+  }
+
+  void _navigateToProfile() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
   }
 }
