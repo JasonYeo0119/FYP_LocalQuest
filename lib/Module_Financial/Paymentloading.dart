@@ -1,21 +1,38 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:localquest/Module_Financial/Paymentstatus_F.dart';
 import 'package:localquest/Module_Financial/Paymentstatus_S.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Paymentloading extends StatefulWidget {
   final String cardNumber;
   final String expiry;
   final String cvv;
+  final Map<String, dynamic> transport;
+  final String? selectedTime;
+  final List<int> selectedSeats;
+  final double totalPrice;
+  final DateTime? departDate;
+  final DateTime? returnDate;
+  final int? numberOfDays;
 
   const Paymentloading({
     Key? key,
     required this.cardNumber,
     required this.expiry,
     required this.cvv,
+    required this.transport,
+    this.selectedTime,
+    required this.selectedSeats,
+    required this.totalPrice,
+    this.departDate,
+    this.returnDate,
+    this.numberOfDays,
   }) : super(key: key);
 
   @override
@@ -27,10 +44,26 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   late Animation<double> _animation;
   bool _isProcessing = true;
 
+  // Firebase references
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   // Define the valid card details here
-  static const String VALID_CARD_NUMBER = "4848100061531890"; // Replace with your valid card number
-  static const String VALID_CARD_DATE = "1226"; // Format: MMYY (e.g., December 2025)
-  static const String VALID_CARD_CVV = "550"; // Replace with your valid CVV
+  static const String VALID_CARD_NUMBER = "4848100061531890";
+  static const String VALID_CARD_DATE = "1226";
+  static const String VALID_CARD_CVV = "550";
+
+  // Method to generate random booking ID
+  String _generateBookingId() {
+    const String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    Random random = Random();
+    int length = 8 + random.nextInt(2); // Random length between 8-9 characters
+
+    return String.fromCharCodes(Iterable.generate(
+        length,
+            (_) => chars.codeUnitAt(random.nextInt(chars.length))
+    ));
+  }
 
   @override
   void initState() {
@@ -58,7 +91,45 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     });
   }
 
-  void _verifyCardNumberAndNavigate() {
+  Future<void> _saveBookingToFirebase() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        String userId = user.uid;
+        String bookingId = _generateBookingId(); // Use custom booking ID generator
+
+        Map<String, dynamic> bookingData = {
+          'bookingId': bookingId,
+          'userId': userId,
+          'transport': widget.transport,
+          'selectedTime': widget.selectedTime,
+          'selectedSeats': widget.selectedSeats,
+          'totalPrice': widget.totalPrice,
+          'departDate': widget.departDate?.toIso8601String(),
+          'returnDate': widget.returnDate?.toIso8601String(),
+          'numberOfDays': widget.numberOfDays,
+          'bookingDate': DateTime.now().toIso8601String(),
+          'status': 'confirmed',
+          'paymentMethod': 'Credit Card',
+          'cardLastFour': widget.cardNumber.substring(widget.cardNumber.length - 4),
+        };
+
+        // Save to user's bookings using the custom booking ID as key
+        await _database.child('users').child(userId).child('bookings').child(bookingId).set(bookingData);
+
+        // Save to general bookings collection using the custom booking ID as key
+        await _database.child('bookings').child(bookingId).set(bookingData);
+
+        print('Booking saved successfully with ID: $bookingId');
+      } else {
+        print('No user logged in');
+      }
+    } catch (e) {
+      print('Error saving booking: $e');
+    }
+  }
+
+  void _verifyCardNumberAndNavigate() async {
     // Remove any spaces or formatting from the card details for comparison
     String cleanCardNumber = widget.cardNumber.replaceAll(' ', '').replaceAll('-', '');
     String cleanExpiry = widget.expiry.replaceAll(' ', '').replaceAll('-', '').replaceAll('/', '');
@@ -70,6 +141,9 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     bool isValidCvv = cleanCvv == VALID_CARD_CVV;
 
     if (isValidCard && isValidDate && isValidCvv) {
+      // Save booking to Firebase before navigating to success
+      await _saveBookingToFirebase();
+
       // Navigate to Payment Success
       Navigator.pushReplacement(
         context,

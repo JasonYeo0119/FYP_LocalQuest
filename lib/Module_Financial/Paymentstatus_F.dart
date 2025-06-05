@@ -31,6 +31,8 @@ class PaymentFailed extends StatelessWidget {
               onPressed: () {
                 //Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
                 Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

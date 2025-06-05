@@ -505,6 +505,13 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           cardNumber: _cardNumberController.text,
           expiry: _expiryController.text,
           cvv: _cvvController.text,
+          transport: widget.transport,
+          selectedTime: widget.selectedTime,
+          selectedSeats: widget.selectedSeats,
+          totalPrice: widget.totalPrice,
+          departDate: widget.departDate,
+          returnDate: widget.returnDate,
+          numberOfDays: widget.numberOfDays,
         ),
         ),
       );
