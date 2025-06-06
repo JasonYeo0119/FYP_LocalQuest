@@ -365,7 +365,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               decoration: InputDecoration(
                 hintText: "Search bookings...",
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 prefixIcon: Icon(Icons.search, size: 20),
               ),
               style: TextStyle(fontSize: 14, color: Colors.black),

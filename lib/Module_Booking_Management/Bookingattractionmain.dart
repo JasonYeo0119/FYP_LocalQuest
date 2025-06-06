@@ -68,6 +68,7 @@ class _BookingattractionmainState extends State<Bookingattractionmain> {
   @override
   void dispose() {
     _dateController.dispose(); // Dispose controller to free memory
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -87,12 +88,314 @@ class _BookingattractionmainState extends State<Bookingattractionmain> {
     }
   }
 
+  Widget _buildSearchForm(double screenWidth, double screenHeight) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.026,
+        vertical: screenHeight * 0.025,
+      ),
+      padding: EdgeInsets.all(screenWidth * 0.026),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: Colors.blue,
+            width: 2,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search input field
+          Container(
+            width: double.infinity,
+            height: screenHeight * 0.045,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: Colors.black, width: 1),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+            alignment: Alignment.center,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Where do you want to go?',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+              textAlignVertical: TextAlignVertical.center,
+            ),
+          ),
+
+          SizedBox(height: screenHeight * 0.01),
+
+          // Attractions list link
+          GestureDetector(
+            onTap: () {
+              Attractionlist(context);
+            },
+            child: Text(
+              'Click here to view the attractions list',
+              style: TextStyle(
+                color: Color(0xFF1A24F1),
+                fontSize: screenWidth * 0.035,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+
+          SizedBox(height: screenHeight * 0.02),
+
+          // Date input and search button row
+          Row(
+            children: [
+              // Date input field
+              Container(
+                width: screenWidth * 0.46,
+                height: screenHeight * 0.045,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: _dateController,
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  decoration: InputDecoration(
+                    hintText: 'Today',
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                  textAlignVertical: TextAlignVertical.center,
+                ),
+              ),
+
+              Spacer(), // Pushes search button to the right
+            ],
+          ),
+
+          SizedBox(height: screenHeight * 0.025),
+
+          // Search button
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                Search(context, _searchController.text);
+              },
+              child: Container(
+                width: screenWidth * 0.39,
+                height: screenHeight * 0.04,
+                decoration: ShapeDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment(1.00, 0.00),
+                    end: Alignment(-1, 0),
+                    colors: [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
+                  ),
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(width: 1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  shadows: [
+                    BoxShadow(
+                      color: Color(0x3F000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 4),
+                      spreadRadius: 0,
+                    )
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    'Search',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: screenWidth * 0.036,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.01),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigation(double screenWidth, double screenHeight) {
+    double iconSize = screenWidth * 0.18;
+    double iconButtonSize = screenWidth * 0.103;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: screenHeight * 0.02,
+      child: Container(
+        height: screenHeight * 0.1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Hotel button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.hotel_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookinghotelmain()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Transport button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.directions_train_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookingtransportmain()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Attraction button (active)
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(1.00, 0.00),
+                  end: Alignment(-1, 0),
+                  colors: [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
+                ),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(Icons.park_outlined, color: Colors.black),
+                iconSize: iconButtonSize,
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Bookingattractionmain()),
+                  );
+                },
+              ),
+            ),
+
+            // All in one button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.dashboard_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookingallinone()),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("All Attractions"),
-        backgroundColor: Colors.transparent, // Make AppBar background transparent
+        title: Text("All Attractions",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -103,330 +406,21 @@ class _BookingattractionmainState extends State<Bookingattractionmain> {
           ),
         ),
       ),
-      body: SingleChildScrollView( // Prevents overflow issues
-        child: Column(
+      body: Container(
+        width: double.infinity,
+        height: screenHeight,
+        decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
+        child: Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: 790,
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
+            SingleChildScrollView(
+              child: Column(
                 children: [
-                  Positioned(  //backgroundwhite
-                    left: 10,
-                    top: 20,
-                    child: Container(
-                      width: 389,
-                      height: 193,
-                      decoration: ShapeDecoration(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.blue, // Border color
-                            width: 2, // Border thickness
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 25,
-                    top: 43,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 359,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Where do you want to go?',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 25,
-                    top: 109,
-                    child: Material(
-                      color: Colors.transparent, // Ensures no unwanted background
-                      child: Container(
-                        width: 180,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5), // Optional rounded corners
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _dateController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context), // Opens date picker on tap
-                          decoration: InputDecoration(
-                            hintText: 'Today',
-                            border: InputBorder.none, // Removes default TextField border
-                            isDense: true, // Reduces TextField height to fit container
-                            contentPadding: EdgeInsets.zero, // Aligns text properly
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 129,
-                    top: 160,
-                    child: GestureDetector(
-                      onTap: () {
-                        Search(context, _searchController.text);
-                      },
-                      child: Container(
-                        width: 151,
-                        height: 32,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 180,
-                    top: 166,
-                    child: GestureDetector(
-                      onTap: () {
-                        Search(context, _searchController.text);
-                      },
-                      child: Text(
-                        'Search',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 29,
-                    top: 82,
-                    child: GestureDetector(
-                      onTap: () {
-                        Attractionlist(context);
-                      },
-                      child: Text(
-                        'Click here to view the attractions list',
-                        style: TextStyle(
-                          color: Color(0xFF1A24F1),
-                          fontSize: 11,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Hotelbutton
-                    left: 38,
-                    top: 678,
-                    child: GestureDetector(
-                      onTap: () {
-                        Stay(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //hotel icon
-                    left: 45,
-                    top: 684,
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: IconButton(
-                        icon: Icon(Icons.hotel_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookinghotelmain()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Purpleroundbutton
-                    left: 126,
-                    top: 678,
-                    child: Container(
-                      width: 70,
-                      height: 70,
-                      decoration: ShapeDecoration(
-                        color: Color(0xFFF5F5F5),
-                        shape: OvalBorder(side: BorderSide(width: 1)),
-                        shadows: [
-                          BoxShadow(
-                            color: Color(0x3F000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 4),
-                            spreadRadius: 0,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Transport icon
-                    left: 133,
-                    top: 687,
-                    child: Opacity(
-                      opacity: 0.3, // Sets the opacity to 30%
-                      child: IconButton(
-                        icon: Icon(Icons.directions_train_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookingtransportmain()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Blueroundicon
-                    left: 214,
-                    top: 677,
-                    child: GestureDetector(
-                      onTap: () {
-                        Attraction(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
-                          ),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Attraction icon
-                    left: 221,
-                    top: 683,
-                    child: IconButton(
-                      icon: Icon(Icons.park_outlined, color: Colors.black),
-                      iconSize: 40,
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => Bookingattractionmain()),
-                        );
-                      },
-                    ),
-                  ),
-                  Positioned(  //Greenroundbutton
-                    left: 302,
-                    top: 678,
-                    child: GestureDetector(
-                      onTap: () {
-                        Allinone(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(  //Allinone icon
-                    left: 309,
-                    top: 686,
-                    child: Opacity(
-                      opacity: 0.3, // Sets the opacity to 30%
-                      child: IconButton(
-                        icon: Icon(Icons.dashboard_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookingallinone()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  _buildSearchForm(screenWidth, screenHeight),
+                  SizedBox(height: screenHeight * 0.15), // Space for bottom navigation
                 ],
               ),
             ),
+            _buildBottomNavigation(screenWidth, screenHeight),
           ],
         ),
       ),

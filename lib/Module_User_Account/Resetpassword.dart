@@ -100,6 +100,10 @@ class _ResetPasswordState extends State<ResetPassword> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF0816A7),
@@ -112,50 +116,59 @@ class _ResetPasswordState extends State<ResetPassword> {
             );
           },
         ),
-        title: Text('Reset Password', style: TextStyle(color: Colors.white)),
+        title: Text('Reset Password', style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 787,
-              decoration: BoxDecoration(color: Color(0xFF0816A7)),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 45,
-                    top: 52,
-                    child: Text(
-                      'LocalQuest',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.irishGrover(
-                        fontSize: 64,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w400,
-                      ),
+      body: Container(
+        width: double.infinity,
+        height: screenHeight,
+        decoration: BoxDecoration(color: Color(0xFF0816A7)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+            child: Column(
+              children: [
+                SizedBox(height: screenHeight * 0.06),
+
+                // LocalQuest Title
+                Text(
+                  'LocalQuest',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.irishGrover(
+                    fontSize: screenWidth * 0.15,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+
+                SizedBox(height: screenHeight * 0.02),
+
+                // Subtitle
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                  child: Text(
+                    "A platform that's universally chosen & designed to suit everyone's travel needs",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: screenWidth * 0.025,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
-                  Positioned(
-                    left: 26,
-                    top: 143,
-                    child: Text(
-                      "A platform that's universally chosen & designed to suit everyone's travel needs",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned( // Yellow square box
-                    left: 53,
-                    top: 246,
-                    child: Container(
-                      width: 303,
-                      height: 300,
+                ),
+
+                SizedBox(height: screenHeight * 0.08),
+
+                // Main Content Container
+                Stack(
+                  children: [
+                    // Yellow border container
+                    Container(
+                      width: screenWidth * 0.8,
+                      height: screenHeight * 0.38,
                       decoration: ShapeDecoration(
                         color: Color(0xFF0816A7),
                         shape: RoundedRectangleBorder(
@@ -163,164 +176,164 @@ class _ResetPasswordState extends State<ResetPassword> {
                         ),
                       ),
                     ),
-                  ),
-                  Positioned( // Reset Password Container
-                    left: 118,
-                    top: 225,
-                    child: Container(
-                      width: 180,
-                      height: 41,
-                      child: Stack(
+
+                    // Content inside the container
+                    Container(
+                      width: screenWidth * 0.8,
+                      height: screenHeight * 0.38,
+                      padding: EdgeInsets.all(screenWidth * 0.04),
+                      child: Column(
                         children: [
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            child: Container(
-                              width: 180,
-                              height: 41,
-                              decoration: BoxDecoration(color: Color(0xFF0816A7)),
-                            ),
-                          ),
-                          Positioned(
-                            left: 10,
-                            top: 3,
+                          // Reset Password Title
+                          Container(
+                            width: screenWidth * 0.6,
+                            height: screenHeight * 0.05,
+                            decoration: BoxDecoration(color: Color(0xFF0816A7)),
+                            alignment: Alignment.center,
                             child: Text(
                               'Reset Password',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 26,
+                                fontSize: screenWidth * 0.065,
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: screenHeight * 0.01),
+
+                          // Instruction text
+                          Text(
+                            'Enter your email address to receive a password reset link:',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: screenWidth * 0.035,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+
+                          SizedBox(height: screenHeight * 0.01),
+
+                          // Email label and input
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Email:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: screenWidth * 0.037,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: screenHeight * 0.01),
+
+                          // Email input field
+                          Material(
+                            color: Colors.transparent,
+                            child: Container(
+                              width: double.infinity,
+                              height: screenHeight * 0.04,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(color: Colors.black, width: 1),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                              alignment: Alignment.center,
+                              child: TextField(
+                                controller: emailController,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.035,
+                                  color: Colors.black,
+                                ),
+                                textAlignVertical: TextAlignVertical.center,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: screenHeight * 0.04),
+
+                          // Send Reset Email button
+                          GestureDetector(
+                            onTap: isLoading ? null : resetPassword,
+                            child: Container(
+                              width: screenWidth * 0.4,
+                              height: screenHeight * 0.05,
+                              decoration: ShapeDecoration(
+                                color: isLoading ? Colors.grey : Color(0xFFFFFF00),
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(width: 1),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: isLoading
+                                  ? SizedBox(
+                                width: screenWidth * 0.05,
+                                height: screenWidth * 0.05,
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                                  : Text(
+                                'Send Reset Email',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: screenWidth * 0.035,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: screenHeight * 0.025),
+
+                          // Back to Login link
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => Login()),
+                              );
+                            },
+                            child: Text(
+                              'Back to Login',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: screenWidth * 0.04,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 79,
-                    top: 283,
-                    child: Text(
-                      'Enter your email address to receive a password reset link:',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 79,
-                    top: 320,
-                    child: Text(
-                      'Email:',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Positioned( // Email input
-                    left: 79,
-                    top: 343,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 251,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned( // Send Reset Email button
-                    left: 130,
-                    top: 400,
-                    child: GestureDetector(
-                      onTap: isLoading ? null : resetPassword,
-                      child: Container(
-                        width: 150,
-                        height: 40,
-                        decoration: ShapeDecoration(
-                          color: isLoading ? Colors.grey : Color(0xFFFFFF00),
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: isLoading
-                            ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.black,
-                            strokeWidth: 2,
-                          ),
-                        )
-                            : Text(
-                          'Send Reset Email',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 150,
-                    top: 470,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => Login()),
-                        );
-                      },
-                      child: Text(
-                        'Back to Login',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+
+                SizedBox(height: screenHeight * 0.05),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

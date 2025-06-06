@@ -1,3 +1,3 @@
 # localquest
 
-This is my Final Year Project
+This is my Final Year Project. It is still under developing.

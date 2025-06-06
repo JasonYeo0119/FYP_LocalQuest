@@ -3,7 +3,6 @@ import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/Searchresult.dart';
-// Add these imports for hotel search functionality
 import '../Model/hotel.dart';
 import '../services/mock_hotel_service.dart';
 import '../widgets/hotel_card.dart';
@@ -184,12 +183,16 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
     );
   }
 
-  Widget _buildPopularDestinations() {
+  Widget _buildPopularDestinations(double screenWidth) {
     final destinations = MockMalaysiaHotelService.getPopularDestinations();
 
     return Container(
-      margin: EdgeInsets.only(top: 250, left: 10, right: 10),
-      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(
+          top: screenWidth * 0.01, // Responsive top margin
+          left: screenWidth * 0.026,
+          right: screenWidth * 0.026
+      ),
+      padding: EdgeInsets.all(screenWidth * 0.041),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -201,8 +204,9 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
           Text(
             'Popular Destinations in Malaysia',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: screenWidth * 0.041,
               fontWeight: FontWeight.bold,
+              color: Colors.black87
             ),
           ),
           SizedBox(height: 8),
@@ -222,11 +226,426 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
     );
   }
 
+  Widget _buildSearchForm(double screenWidth, double screenHeight) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.026,
+        vertical: screenHeight * 0.025,
+      ),
+      padding: EdgeInsets.all(screenWidth * 0.026),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: Colors.deepOrange,
+            width: 2,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Location input
+          Container(
+            width: double.infinity,
+            height: screenHeight * 0.045,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: Colors.black, width: 1),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+            alignment: Alignment.center,
+            child: TextField(
+              controller: _locationController,
+              decoration: InputDecoration(
+                hintText: 'Where do you want to go?',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+              textAlignVertical: TextAlignVertical.center,
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.015),
+
+          // Check-in and Check-out dates
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: screenHeight * 0.045,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                  alignment: Alignment.center,
+                  child: TextField(
+                    controller: _checkInController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context, _checkInController, true),
+                    decoration: InputDecoration(
+                      hintText: 'Check In',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    textAlignVertical: TextAlignVertical.center,
+                  ),
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.026),
+              Expanded(
+                child: Container(
+                  height: screenHeight * 0.045,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                  alignment: Alignment.center,
+                  child: TextField(
+                    controller: _checkOutController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context, _checkOutController, false),
+                    decoration: InputDecoration(
+                      hintText: 'Check Out',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    textAlignVertical: TextAlignVertical.center,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.015),
+
+          // Adults and Children dropdowns
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: screenHeight * 0.045,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+                  alignment: Alignment.center,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedAdults,
+                      dropdownColor: Colors.white,
+                      isExpanded: true,
+                      hint: Text(
+                        'Number of Adult(s)',
+                        style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                      ),
+                      onChanged: (int? newValue) {
+                        setState(() {
+                          selectedAdults = newValue!;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem<int>(
+                          value: null,
+                          child: Text(
+                            'Number of Adult(s)',
+                            style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                          ),
+                        ),
+                        ...List.generate(20, (index) => index + 1).map((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(
+                              value.toString(),
+                              style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.026),
+              Expanded(
+                child: Container(
+                  height: screenHeight * 0.045,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+                  alignment: Alignment.center,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedChildren,
+                      dropdownColor: Colors.white,
+                      isExpanded: true,
+                      hint: Text(
+                        'Number of Child',
+                        style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                      ),
+                      onChanged: (int? newValue) {
+                        setState(() {
+                          selectedChildren = newValue!;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem<int>(
+                          value: null,
+                          child: Text(
+                            'Number of Child',
+                            style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                          ),
+                        ),
+                        ...List.generate(11, (index) => index).map((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(
+                              value.toString(),
+                              style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.025),
+
+          // Search button
+          Center(
+            child: GestureDetector(
+              onTap: _isLoading ? null : _searchHotels,
+              child: Container(
+                width: screenWidth * 0.39,
+                height: screenHeight * 0.04,
+                decoration: ShapeDecoration(
+                  gradient: _isLoading
+                      ? LinearGradient(
+                    colors: [Colors.grey, Colors.grey.shade300],
+                  )
+                      : LinearGradient(
+                    begin: Alignment(1.00, 0.00),
+                    end: Alignment(-1, 0),
+                    colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
+                  ),
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(width: 1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  shadows: [
+                    BoxShadow(
+                      color: Color(0x3F000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 4),
+                      spreadRadius: 0,
+                    )
+                  ],
+                ),
+                child: Center(
+                  child: _isLoading
+                      ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : Text(
+                    'Search',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: screenWidth * 0.036,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.01),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigation(double screenWidth, double screenHeight) {
+    double iconSize = screenWidth * 0.18;
+    double iconButtonSize = screenWidth * 0.103;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: screenHeight * 0.02,
+      child: Container(
+        height: screenHeight * 0.1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Hotel button (active)
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(1.00, 0.00),
+                  end: Alignment(-1, 0),
+                  colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
+                ),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(Icons.hotel_outlined, color: Colors.black),
+                iconSize: iconButtonSize,
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Bookinghotelmain()),
+                  );
+                },
+              ),
+            ),
+
+            // Transport button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.directions_train_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookingtransportmain()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Attraction button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.park_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookingattractionmain()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // All in one button
+            Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: ShapeDecoration(
+                color: Color(0xFFF5F5F5),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Opacity(
+                opacity: 0.3,
+                child: IconButton(
+                  icon: Icon(Icons.dashboard_outlined, color: Colors.black),
+                  iconSize: iconButtonSize,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bookingallinone()),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("All Rooms"),
+        title: Text("All Rooms",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        ),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -238,464 +657,22 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
+      body: Container(
+        width: double.infinity,
+        height: screenHeight,
+        decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
+        child: Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: _showResults ? 1200 : 790, // Adjust height based on results
-              decoration: BoxDecoration(color: Color(0xFFF5F5F5)),
-              child: Stack(
+            SingleChildScrollView(
+              child: Column(
                 children: [
-                  Positioned(
-                    left: 10,
-                    top: 20,
-                    child: Container(
-                      width: 389,
-                      height: 220,
-                      decoration: ShapeDecoration(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.deepOrange,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 25,
-                    top: 43,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 359,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _locationController, // Updated controller
-                          decoration: InputDecoration(
-                            hintText: 'Where do you want to go?',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 25,
-                    top: 89,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _checkInController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _checkInController, true),
-                          decoration: InputDecoration(
-                            hintText: 'Check In',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 212,
-                    top: 89,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _checkOutController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _checkOutController, false),
-                          decoration: InputDecoration(
-                            hintText: 'Check Out',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 25,
-                    top: 134,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 1),
-                        alignment: Alignment.center,
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: selectedAdults,
-                            dropdownColor: Colors.white,
-                            hint: Text(
-                              'Number of Adult(s)',
-                              style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
-                            ),
-                            onChanged: (int? newValue) {
-                              setState(() {
-                                selectedAdults = newValue!;
-                              });
-                            },
-                            items: [
-                              DropdownMenuItem<int>(
-                                value: null,
-                                child: Text(
-                                  'Number of Adult(s)',
-                                  style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
-                                ),
-                              ),
-                              ...List.generate(20, (index) => index + 1).map((int value) {
-                                return DropdownMenuItem<int>(
-                                  value: value,
-                                  child: Text(
-                                    value.toString(),
-                                    style: TextStyle(fontSize: 14, color: Colors.black),
-                                  ),
-                                );
-                              }).toList(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 212,
-                    top: 134,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 170,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black, width: 1),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 1),
-                        alignment: Alignment.center,
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: selectedChildren,
-                            dropdownColor: Colors.white,
-                            hint: Text(
-                              'Number of Children', // Fixed hint text
-                              style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
-                            ),
-                            onChanged: (int? newValue) {
-                              setState(() {
-                                selectedChildren = newValue!;
-                              });
-                            },
-                            items: [
-                              DropdownMenuItem<int>(
-                                value: null,
-                                child: Text(
-                                  'Number of Children',
-                                  style: TextStyle(fontSize: 14, color: Color(0xFFB1B1B1)),
-                                ),
-                              ),
-                              ...List.generate(11, (index) => index).map((int value) {
-                                return DropdownMenuItem<int>(
-                                  value: value,
-                                  child: Text(
-                                    value.toString(),
-                                    style: TextStyle(fontSize: 14, color: Colors.black),
-                                  ),
-                                );
-                              }).toList(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 129,
-                    top: 187,
-                    child: GestureDetector(
-                      onTap: _isLoading ? null : _searchHotels, // Disable when loading
-                      child: Container(
-                        width: 151,
-                        height: 32,
-                        decoration: ShapeDecoration(
-                          gradient: _isLoading
-                              ? LinearGradient(
-                            colors: [Colors.grey, Colors.grey.shade300],
-                          )
-                              : LinearGradient(
-                            begin: Alignment(1.00, 0.00),
-                            end: Alignment(-1, 0),
-                            colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                        child: _isLoading
-                            ? Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
-                        )
-                            : null,
-                      ),
-                    ),
-                  ),
-                  if (!_isLoading)
-                    Positioned(
-                      left: 180,
-                      top: 193,
-                      child: GestureDetector(
-                        onTap: _searchHotels,
-                        child: Text(
-                          'Search',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Popular destinations section
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    right: 0,
-                    child: _buildPopularDestinations(),
-                  ),
-                  Positioned(
-                    left: 38,
-                    top: 678,
-                    child: Container(
-                      width: 70,
-                      height: 70,
-                      decoration: ShapeDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment(1.00, 0.00),
-                          end: Alignment(-1, 0),
-                          colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
-                        ),
-                        shape: OvalBorder(side: BorderSide(width: 1)),
-                        shadows: [
-                          BoxShadow(
-                            color: Color(0x3F000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 4),
-                            spreadRadius: 0,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 45,
-                    top: 684,
-                    child: IconButton(
-                      icon: Icon(Icons.hotel_outlined, color: Colors.black),
-                      iconSize: 40,
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => Bookinghotelmain()),
-                        );
-                      },
-                    ),
-                  ),
-                  Positioned(
-                    left: 126,
-                    top: 678,
-                    child: GestureDetector(
-                      onTap: () {
-                        Transport(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 133,
-                    top: 687,
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: IconButton(
-                        icon: Icon(Icons.directions_train_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookingtransportmain()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 214,
-                    top: 677,
-                    child: GestureDetector(
-                      onTap: () {
-                        Attraction(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 221,
-                    top: 683,
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: IconButton(
-                        icon: Icon(Icons.park_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookingattractionmain()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 302,
-                    top: 678,
-                    child: GestureDetector(
-                      onTap: () {
-                        Allinone(context);
-                      },
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: ShapeDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: OvalBorder(side: BorderSide(width: 1)),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 309,
-                    top: 686,
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: IconButton(
-                        icon: Icon(Icons.dashboard_outlined, color: Colors.black),
-                        iconSize: 40,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Bookingallinone()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  _buildSearchForm(screenWidth, screenHeight),
+                  _buildPopularDestinations(screenWidth),
+                  SizedBox(height: screenHeight * 0.15), // Space for bottom navigation
                 ],
               ),
             ),
+            _buildBottomNavigation(screenWidth, screenHeight),
           ],
         ),
       ),

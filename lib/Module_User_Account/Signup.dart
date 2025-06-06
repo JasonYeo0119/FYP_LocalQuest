@@ -305,6 +305,26 @@ class _SignupState extends State<Signup> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate responsive dimensions based on original design (411x787)
+    final designWidth = 411.0;
+    final designHeight = 787.0;
+
+    // Scale factors
+    final widthScale = screenWidth / designWidth;
+    final heightScale = screenHeight / designHeight;
+
+    // Use minimum scale to maintain aspect ratio
+    final scale = widthScale < heightScale ? widthScale : heightScale;
+
+    // Responsive helper function
+    double responsive(double value) => value * scale;
+    double responsiveWidth(double value) => value * widthScale;
+    double responsiveHeight(double value) => value * heightScale;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF0816A7),
@@ -315,43 +335,46 @@ class _SignupState extends State<Signup> {
           children: [
             Container(  //background
               width: double.infinity,
-              height: 787,
+              height: screenHeight - AppBar().preferredSize.height - MediaQuery.of(context).padding.top,
               decoration: BoxDecoration(color: Color(0xFF0816A7)),
               child: Stack(
                 children: [
                   Positioned(
-                    left: 45,
-                    top: 52,
+                    left: responsiveWidth(45),
+                    top: responsiveHeight(52),
                     child: Text(
                       'LocalQuest',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.irishGrover(
-                          fontSize: 64,
+                          fontSize: responsive(64),
                           color:Colors.white,
                           fontWeight: FontWeight.w400
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 26,
-                    top: 143,
-                    child: Text(
-                      "A platform that's universally chosen & designed to suit everyone's travel needs",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
+                    left: responsiveWidth(26),
+                    top: responsiveHeight(143),
+                    child: Container(
+                      width: responsiveWidth(359),
+                      child: Text(
+                        "A platform that's universally chosen & designed to suit everyone's travel needs",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: responsive(10),
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   ),
                   Positioned(  //Yellowsquarebox
-                    left: 53,
-                    top: 246,
+                    left: responsiveWidth(53),
+                    top: responsiveHeight(200),
                     child: Container(
-                      width: 303,
-                      height: 435,
+                      width: responsiveWidth(303),
+                      height: responsiveHeight(420),
                       decoration: ShapeDecoration(
                         color: Color(0xFF0816A7),
                         shape: RoundedRectangleBorder(
@@ -361,31 +384,31 @@ class _SignupState extends State<Signup> {
                     ),
                   ),
                   Positioned(  //SignupContainer
-                    left: 148,
-                    top: 225,
+                    left: responsiveWidth(148),
+                    top: responsiveHeight(179),
                     child: Container(
-                      width: 110,
-                      height: 41,
+                      width: responsiveWidth(110),
+                      height: responsiveHeight(41),
                       child: Stack(
                         children: [
                           Positioned(
                             left: 0,
                             top: 0,
                             child: Container(
-                              width: 112,
-                              height: 41,
+                              width: responsiveWidth(114),
+                              height: responsiveHeight(41),
                               decoration: BoxDecoration(color: Color(0xFF0816A7)),
                             ),
                           ),
                           Positioned(
-                            left: 12,
-                            top: 6,
+                            left: responsiveWidth(12),
+                            top: responsiveHeight(6),
                             child: Text(
                               'Sign Up',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 24,
+                                fontSize: responsive(24),
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w700,
                               ),
@@ -396,32 +419,32 @@ class _SignupState extends State<Signup> {
                     ),
                   ),
                   Positioned(
-                    left: 79,
-                    top: 283,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(237),
                     child: Text(
                       'Name:',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: responsive(15),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Positioned(  //Nameinput
-                    left: 79,
-                    top: 306,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(260),
                     child: Material(
                       color: Colors.transparent, // Ensures no unwanted background
                       child: Container(
-                        width: 251,
-                        height: 30,
+                        width: responsiveWidth(251),
+                        height: responsiveHeight(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(5), // Optional rounded corners
                           border: Border.all(color: Colors.black, width: 1),
                         ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                         alignment: Alignment.center,
                         child: TextField(
                           controller: name,
@@ -430,39 +453,39 @@ class _SignupState extends State<Signup> {
                             isDense: true, // Reduces TextField height to fit container
                             contentPadding: EdgeInsets.zero, // Aligns text properly
                           ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(fontSize: responsive(14), color: Colors.black),
                           textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 79,
-                    top: 348,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(302),
                     child: Text(
                       'Email Address:',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: responsive(15),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Positioned(  //Emailinput
-                    left: 79,
-                    top: 371,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(325),
                     child: Material(
                       color: Colors.transparent, // Ensures no unwanted background
                       child: Container(
-                        width: 251,
-                        height: 30,
+                        width: responsiveWidth(251),
+                        height: responsiveHeight(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(5), // Optional rounded corners
                           border: Border.all(color: Colors.black, width: 1),
                         ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                         alignment: Alignment.center,
                         child: TextField(
                           controller: email,
@@ -471,61 +494,61 @@ class _SignupState extends State<Signup> {
                             isDense: true, // Reduces TextField height to fit container
                             contentPadding: EdgeInsets.zero, // Aligns text properly
                           ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(fontSize: responsive(14), color: Colors.black),
                           textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 80,
-                    top: 413,
+                    left: responsiveWidth(80),
+                    top: responsiveHeight(367),
                     child: Text(
                       'Phone Number:',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: responsive(15),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Positioned(  //CountryCodeSelect
-                    left: 79,
-                    top: 436,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(390),
                     child: GestureDetector(
                         onTap: () => _showCountryPicker(context),
                         child: Container(
-                          width: 100,
-                          height: 30,
+                          width: responsiveWidth(100),
+                          height: responsiveHeight(30),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(5), // Optional rounded corners
                             border: Border.all(color: Colors.black, width: 1),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                          padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                           alignment: Alignment.center,
                           child: Text(
                             _selectedCountry,
-                            style: TextStyle(fontSize: 14, color: Colors.black),
+                            style: TextStyle(fontSize: responsive(14), color: Colors.black),
                           ),
                         )
                     ),
                   ),
                   Positioned(  //Phonenuminput
-                    left: 181,
-                    top: 436,
+                    left: responsiveWidth(181),
+                    top: responsiveHeight(390),
                     child: Material(
                       color: Colors.transparent, // Ensures no unwanted background
                       child: Container(
-                        width: 150,
-                        height: 30,
+                        width: responsiveWidth(150),
+                        height: responsiveHeight(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(5), // Optional rounded corners
                           border: Border.all(color: Colors.black, width: 1),
                         ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                         alignment: Alignment.center,
                         child: TextField(
                           controller: number,
@@ -535,39 +558,39 @@ class _SignupState extends State<Signup> {
                             isDense: true, // Reduces TextField height to fit container
                             contentPadding: EdgeInsets.zero, // Aligns text properly
                           ),
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(fontSize: responsive(14), color: Colors.black),
                           textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 80,
-                    top: 478,
+                    left: responsiveWidth(80),
+                    top: responsiveHeight(432),
                     child: Text(
                       'Password:',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: responsive(15),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Positioned(  //Passwordinput
-                    left: 79,
-                    top: 501,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(455),
                     child: Material(
                       color: Colors.transparent, // Ensures no unwanted background
                       child: Container(
-                        width: 251,
-                        height: 30,
+                        width: responsiveWidth(251),
+                        height: responsiveHeight(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(5), // Optional rounded corners
                           border: Border.all(color: Colors.black, width: 1),
                         ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                         alignment: Alignment.center,
                         child: Row(
                           children: [
@@ -580,7 +603,7 @@ class _SignupState extends State<Signup> {
                                   isDense: true, // Reduces TextField height to fit container
                                   contentPadding: EdgeInsets.zero, // Aligns text properly
                                 ),
-                                style: TextStyle(fontSize: 14, color: Colors.black),
+                                style: TextStyle(fontSize: responsive(14), color: Colors.black),
                                 textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
                               ),
                             ),
@@ -592,7 +615,7 @@ class _SignupState extends State<Signup> {
                               },
                               child: Icon(
                                 _obscureText ? Icons.visibility_off : Icons.visibility,
-                                size: 18,
+                                size: responsive(18),
                                 color: Colors.grey,
                               ),
                             ),
@@ -602,32 +625,32 @@ class _SignupState extends State<Signup> {
                     ),
                   ),
                   Positioned(
-                    left: 80,
-                    top: 543,
+                    left: responsiveWidth(80),
+                    top: responsiveHeight(497),
                     child: Text(
                       'Confirm Password:',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: responsive(15),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Positioned(  //Confirmpasswordinput
-                    left: 79,
-                    top: 566,
+                    left: responsiveWidth(79),
+                    top: responsiveHeight(520),
                     child: Material(
                       color: Colors.transparent, // Ensures no unwanted background
                       child: Container(
-                        width: 251,
-                        height: 30,
+                        width: responsiveWidth(251),
+                        height: responsiveHeight(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(5), // Optional rounded corners
                           border: Border.all(color: Colors.black, width: 1),
                         ),// Optional border
-                        padding: EdgeInsets.symmetric(horizontal: 8), // Padding for text input
+                        padding: EdgeInsets.symmetric(horizontal: responsive(8)), // Padding for text input
                         alignment: Alignment.center,
                         child: Row(
                           children: [
@@ -640,7 +663,7 @@ class _SignupState extends State<Signup> {
                                   isDense: true, // Reduces TextField height to fit container
                                   contentPadding: EdgeInsets.zero, // Aligns text properly
                                 ),
-                                style: TextStyle(fontSize: 14, color: Colors.black),
+                                style: TextStyle(fontSize: responsive(14), color: Colors.black),
                                 textAlignVertical: TextAlignVertical.center, // Ensures proper vertical alignment
                               ),
                             ),
@@ -652,7 +675,7 @@ class _SignupState extends State<Signup> {
                               },
                               child: Icon(
                                 _obscureText2 ? Icons.visibility_off : Icons.visibility,
-                                size: 18,
+                                size: responsive(18),
                                 color: Colors.grey,
                               ),
                             ),
@@ -662,8 +685,8 @@ class _SignupState extends State<Signup> {
                     ),
                   ),
                   Positioned(  //Signupbutton
-                    left: 155,
-                    top: 620,
+                    left: responsiveWidth(155),
+                    top: responsiveHeight(569),
                     child: GestureDetector(
                       onTap: () async {
                         // Validates all fields
@@ -703,8 +726,8 @@ class _SignupState extends State<Signup> {
                         signUp();
                       },
                       child: Container(
-                        width: 100,
-                        height: 30,
+                        width: responsiveWidth(100),
+                        height: responsiveHeight(30),
                         decoration: ShapeDecoration(
                           color: Color(0xFFFFFF00),
                           shape: RoundedRectangleBorder(
@@ -718,7 +741,7 @@ class _SignupState extends State<Signup> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 14,
+                            fontSize: responsive(14),
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w400,
                           ),
@@ -727,41 +750,44 @@ class _SignupState extends State<Signup> {
                     ),
                   ),
                   Positioned(
-                    left: 107,
-                    top: 698,
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Already have an account? ',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
+                    left: responsiveWidth(107),
+                    top: responsiveHeight(634),
+                    child: Container(
+                      width: responsiveWidth(197),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Already have an account? ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: responsive(14),
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: 'Login now',
-                            style: TextStyle(
-                              color: Color(0xFFFFE900),
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                              decoration: TextDecoration.underline,
+                            TextSpan(
+                              text: 'Login now',
+                              style: TextStyle(
+                                color: Color(0xFFFFE900),
+                                fontSize: responsive(14),
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  // Navigate to login page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Login()), // Replace with your login page widget
+                                  );
+                                },
                             ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                // Navigate to login page
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Login()), // Replace with your login page widget
-                                );
-                              },
-                          ),
-                        ],
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
@@ -853,81 +879,95 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('Please check your email')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions for responsive verification page
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate responsive scaling
+    final designWidth = 411.0;
+    final scale = screenWidth / designWidth;
+
+    double responsive(double value) => value * scale;
+
     return isEmailVerified
         ? Homepage()
         : Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF0816A7),
-        title: Text('Verify Email', style: TextStyle(color: Colors.white)),
+        title: Text('Verify Email', style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        ),
       ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(color: Color(0xFF0816A7)),
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(responsive(20)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.email,
-                size: 100,
+                size: responsive(100),
                 color: Colors.white,
               ),
-              SizedBox(height: 30),
+              SizedBox(height: responsive(30)),
               Text(
                 'Verify Your Email',
                 style: GoogleFonts.irishGrover(
-                  fontSize: 32,
+                  fontSize: responsive(32),
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: responsive(20)),
               Text(
                 'A verification email has been sent to:',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: responsive(16),
                   fontFamily: 'Inter',
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 10),
+              SizedBox(height: responsive(10)),
               Text(
                 widget.userEmail,
                 style: TextStyle(
                   color: Color(0xFFFFFF00),
-                  fontSize: 18,
+                  fontSize: responsive(18),
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 30),
+              SizedBox(height: responsive(30)),
               Text(
                 'Please check your email and click on the verification link to continue.',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: responsive(14),
                   fontFamily: 'Inter',
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 40),
+              SizedBox(height: responsive(40)),
               ElevatedButton(
                 onPressed: sendVerificationEmail,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFFFFFF00),
                   foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: EdgeInsets.symmetric(horizontal: responsive(30), vertical: responsive(15)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
@@ -935,12 +975,12 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                 child: Text(
                   'Resend Verification Email',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: responsive(16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: responsive(20)),
               TextButton(
                 onPressed: () {
                   FirebaseAuth.instance.signOut();
@@ -953,7 +993,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   'Back to Login',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: responsive(16),
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -981,6 +1021,16 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions for responsive dialog
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate responsive scaling
+    final designWidth = 411.0;
+    final scale = screenWidth / designWidth;
+
+    double responsive(double value) => value * scale;
+
     List<Map<String, String>> filteredCountries = widget.countries
         .where((country) =>
     country["name"]!.toLowerCase().contains(searchQuery.toLowerCase()) ||
@@ -990,8 +1040,8 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Container(
-        height: 400,
-        padding: EdgeInsets.all(10),
+        height: responsive(400),
+        padding: EdgeInsets.all(responsive(10)),
         child: Column(
           children: [
             // Search Bar
@@ -1006,8 +1056,9 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
+              style: TextStyle(fontSize: responsive(14)),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: responsive(10)),
 
             // Country List
             Expanded(
@@ -1016,8 +1067,14 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
                 itemBuilder: (context, index) {
                   var country = filteredCountries[index];
                   return ListTile(
-                    title: Text("${country["name"]} (${country["code"]})"),
-                    subtitle: Text("Phone: ${country["phone"]}"),
+                    title: Text(
+                      "${country["name"]} (${country["code"]})",
+                      style: TextStyle(fontSize: responsive(14)),
+                    ),
+                    subtitle: Text(
+                      "Phone: ${country["phone"]}",
+                      style: TextStyle(fontSize: responsive(12)),
+                    ),
                     onTap: () {
                       widget.onSelected("${country["code"]} ${country["phone"]}");
                       Navigator.pop(context);

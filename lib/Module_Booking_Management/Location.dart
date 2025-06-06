@@ -447,10 +447,10 @@ class _LocationState extends State<Location> {
                   controller: _searchController,
                   onChanged: (value) => _applyFilters(),
                   decoration: InputDecoration(
-                    hintText: "Search attractions...",
+                    hintText: "Search attraction name...",
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     prefixIcon: Icon(Icons.search, size: 20),
                   ),
                   style: TextStyle(fontSize: 14, color: Colors.black),
