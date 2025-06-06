@@ -9,6 +9,7 @@ import 'package:localquest/Module_Financial/Paymentstatus_S.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:localquest/Model/attraction_model.dart';
+import '../Model/hotel.dart';
 
 class Paymentloading extends StatefulWidget {
   final String cardNumber;
@@ -29,6 +30,14 @@ class Paymentloading extends StatefulWidget {
   final List<Map<String, dynamic>>? selectedTickets;
   final DateTime? visitDate;
 
+  // Hotel booking parameters (optional)
+  final Hotel? hotel;
+  final DateTime? checkInDate;
+  final DateTime? checkOutDate;
+  final int? numberOfGuests;
+  final int? numberOfRooms;
+  final int? numberOfNights;
+
   const Paymentloading({
     Key? key,
     required this.cardNumber,
@@ -46,6 +55,13 @@ class Paymentloading extends StatefulWidget {
     this.attraction,
     this.selectedTickets,
     this.visitDate,
+    // Hotel parameters
+    this.hotel,
+    this.checkInDate,
+    this.checkOutDate,
+    this.numberOfGuests,
+    this.numberOfRooms,
+    this.numberOfNights,
   }) : super(key: key);
 
   @override
@@ -66,8 +82,10 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   static const String VALID_CARD_DATE = "1226";
   static const String VALID_CARD_CVV = "550";
 
-  // Check if this is an attraction booking
+  // Check booking types
   bool get isAttractionBooking => widget.attraction != null;
+  bool get isHotelBooking => widget.hotel != null;
+  bool get isTransportBooking => widget.transport != null;
 
   // Method to generate random booking ID
   String _generateBookingId() {
@@ -122,11 +140,28 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
           'status': 'confirmed',
           'paymentMethod': 'Credit Card',
           'cardLastFour': widget.cardNumber.substring(widget.cardNumber.length - 4),
-          'bookingType': isAttractionBooking ? 'attraction' : 'transport',
+          'bookingType': _getBookingType(),
         };
 
         // Add booking-specific data
-        if (isAttractionBooking) {
+        if (isHotelBooking) {
+          // Hotel booking data
+          bookingData.addAll({
+            'hotel': {
+              'name': widget.hotel!.name,
+              'address': widget.hotel!.address,
+              'rating': widget.hotel!.rating,
+              'pricePerNight': widget.hotel!.price,
+              'imageUrl': widget.hotel!.imageUrl,
+              'amenities': widget.hotel!.amenities,
+            },
+            'checkInDate': widget.checkInDate?.toIso8601String(),
+            'checkOutDate': widget.checkOutDate?.toIso8601String(),
+            'numberOfGuests': widget.numberOfGuests,
+            'numberOfRooms': widget.numberOfRooms,
+            'numberOfNights': widget.numberOfNights,
+          });
+        } else if (isAttractionBooking) {
           // Attraction booking data
           bookingData.addAll({
             'attraction': {
@@ -158,16 +193,28 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         await _database.child('bookings').child(bookingId).set(bookingData);
 
         // Save to specific collection based on booking type
-        String collectionName = isAttractionBooking ? 'attraction_bookings' : 'transport_bookings';
+        String collectionName = _getCollectionName();
         await _database.child(collectionName).child(bookingId).set(bookingData);
 
-        print('${isAttractionBooking ? 'Attraction' : 'Transport'} booking saved successfully with ID: $bookingId');
+        print('${_getBookingType()} booking saved successfully with ID: $bookingId');
       } else {
         print('No user logged in');
       }
     } catch (e) {
       print('Error saving booking: $e');
     }
+  }
+
+  String _getBookingType() {
+    if (isHotelBooking) return 'hotel';
+    if (isAttractionBooking) return 'attraction';
+    return 'transport';
+  }
+
+  String _getCollectionName() {
+    if (isHotelBooking) return 'hotel_bookings';
+    if (isAttractionBooking) return 'attraction_bookings';
+    return 'transport_bookings';
   }
 
   void _verifyCardNumberAndNavigate() async {
@@ -208,8 +255,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     // Dynamic colors based on booking type
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF0816A7);
-    IconData cardIcon = isAttractionBooking ? Icons.confirmation_number : Icons.credit_card;
+    Color primaryColor = _getPrimaryColor();
+    IconData cardIcon = _getCardIcon();
 
     return Scaffold(
       appBar: AppBar(
@@ -273,9 +320,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
             // Description with booking type context
             Text(
-              isAttractionBooking
-                  ? "Processing your attraction booking..."
-                  : "Processing your transport booking...",
+              _getProcessingDescription(),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
@@ -302,8 +347,26 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     );
   }
 
+  Color _getPrimaryColor() {
+    if (isHotelBooking) return Color(0xFFFF4502);
+    if (isAttractionBooking) return Color(0xFF0C1FF7);
+    return Color(0xFF0816A7);
+  }
+
+  IconData _getCardIcon() {
+    if (isHotelBooking) return Icons.hotel;
+    if (isAttractionBooking) return Icons.confirmation_number;
+    return Icons.credit_card;
+  }
+
+  String _getProcessingDescription() {
+    if (isHotelBooking) return "Processing your hotel booking...";
+    if (isAttractionBooking) return "Processing your attraction booking...";
+    return "Processing your transport booking...";
+  }
+
   Widget _buildAnimatedDots() {
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF0816A7);
+    Color primaryColor = _getPrimaryColor();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

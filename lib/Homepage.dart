@@ -3,7 +3,6 @@ import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart'
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/History.dart';
-import 'package:localquest/Module_Booking_Management/Hotelsearchscreen.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
 import 'package:localquest/Module_Financial/Deals.dart';
 import 'package:localquest/Module_Financial/Payment.dart';

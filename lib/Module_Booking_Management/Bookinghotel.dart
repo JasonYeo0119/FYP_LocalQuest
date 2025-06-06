@@ -673,6 +673,9 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
 }
 
 // Create the missing HotelSearchResultsScreen class
+// Updated HotelSearchResultsScreen in Bookinghotel.dart
+// Replace the existing HotelSearchResultsScreen class with this updated version
+
 class HotelSearchResultsScreen extends StatelessWidget {
   final List<Hotel> hotels;
   final String destination;
@@ -695,7 +698,11 @@ class HotelSearchResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hotels in $destination'),
+        title: Text('Hotels in $destination',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -709,27 +716,73 @@ class HotelSearchResultsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
+          // Search criteria summary
           Container(
+            width: double.infinity,
             padding: EdgeInsets.all(16),
-            color: Colors.grey[100],
+            color: Colors.white,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$destination',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, color: Colors.orange[600], size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      destination,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ],
                 ),
-                Text(
-                  '${checkInDate.day}/${checkInDate.month}/${checkInDate.year} - ${checkOutDate.day}/${checkOutDate.month}/${checkOutDate.year}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: Colors.grey[600], size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      '${checkInDate.day}/${checkInDate.month}/${checkInDate.year} - ${checkOutDate.day}/${checkOutDate.month}/${checkOutDate.year}',
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
                 ),
-                Text(
-                  '$adults Adults${children > 0 ? ', $children Children' : ''}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.people, color: Colors.grey[600], size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      '$adults Adult${adults > 1 ? 's' : ''}${children > 0 ? ', $children Child${children > 1 ? 'ren' : ''}' : ''}',
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                    SizedBox(width: 16),
+                    Icon(Icons.nights_stay, color: Colors.grey[600], size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      '${checkOutDate.difference(checkInDate).inDays} night${checkOutDate.difference(checkInDate).inDays > 1 ? 's' : ''}',
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+
+          // Results count
+          if (hotels.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey[100],
+              child: Text(
+                '${hotels.length} hotel${hotels.length > 1 ? 's' : ''} found',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
           Expanded(
             child: hotels.isEmpty
                 ? Center(
@@ -742,27 +795,55 @@ class HotelSearchResultsScreen extends StatelessWidget {
                     'No hotels found',
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Try adjusting your search criteria',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
                 ],
               ),
             )
                 : ListView.builder(
+              padding: EdgeInsets.all(8),
               itemCount: hotels.length,
               itemBuilder: (context, index) {
-                return HotelCard(
-                  hotel: hotels[index],
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HotelDetailsScreen(hotel: hotels[index]),
-                      ),
-                    );
-                  },
+                return Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: HotelCard(
+                    hotel: hotels[index],
+                    onTap: () {
+                      // Pass all the search information to HotelDetailsScreen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HotelDetailsScreen(
+                            hotel: hotels[index],
+                            // Pass the search criteria as pre-filled data
+                            prefilledCheckInDate: checkInDate,
+                            prefilledCheckOutDate: checkOutDate,
+                            prefilledNumberOfGuests: adults,
+                            prefilledNumberOfChildren: children,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
           ),
         ],
+      ),
+
+      // Add floating action button to modify search
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.pop(context); // Go back to search screen
+        },
+        backgroundColor: Color(0xFFFF4502),
+        foregroundColor: Colors.white,
+        icon: Icon(Icons.edit_location),
+        label: Text('Modify Search'),
       ),
     );
   }

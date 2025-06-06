@@ -178,7 +178,14 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     String bookingType = booking['bookingType']?.toString() ?? 'transport';
 
     try {
-      if (bookingType == 'attraction') {
+      if (bookingType == 'hotel') {
+        // For hotels, use check-out date as the relevant date
+        if (booking['checkOutDate'] != null) {
+          return DateTime.parse(booking['checkOutDate']);
+        } else if (booking['checkInDate'] != null) {
+          return DateTime.parse(booking['checkInDate']);
+        }
+      } else if (bookingType == 'attraction') {
         // For attractions, use visitDate
         if (booking['visitDate'] != null) {
           return DateTime.parse(booking['visitDate']);
@@ -219,7 +226,9 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
         String searchableName = '';
         String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
 
-        if (bookingType == 'attraction') {
+        if (bookingType == 'hotel') {
+          searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
+        } else if (bookingType == 'attraction') {
           searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
         } else {
           searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
@@ -233,7 +242,9 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
         String searchableName = '';
         String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
 
-        if (bookingType == 'attraction') {
+        if (bookingType == 'hotel') {
+          searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
+        } else if (bookingType == 'attraction') {
           searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
         } else {
           searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
@@ -330,7 +341,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
         final booking = bookings[index];
         String bookingType = booking['bookingType']?.toString() ?? 'transport';
 
-        if (bookingType == 'attraction') {
+        // Handle different booking types
+        if (bookingType == 'hotel') {
+          return _buildHotelBookingCard(booking);
+        } else if (bookingType == 'attraction') {
           return _buildAttractionBookingCard(booking);
         } else {
           return _buildTransportBookingCard(booking);
@@ -492,6 +506,271 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                   Text("Profile", style: TextStyle(color: Colors.white)),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHotelBookingCard(Map<String, dynamic> booking) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with hotel name and status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.hotel, size: 20, color: Color(0xFFFF4502)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          booking['hotel']?['name'] ?? 'Hotel',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF4502),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(booking['status'] ?? 'pending').withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    (booking['status'] ?? 'pending').toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Hotel Details
+            if (booking['hotel']?['address'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      booking['hotel']['address'],
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Rating
+            if (booking['hotel']?['rating'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    '${booking['hotel']['rating']} ⭐',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Booking Details
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Booked: ${_formatDate(booking['bookingDate'])} at ${_formatTime(booking['bookingDate'])}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+
+            // Check-in Date
+            if (booking['checkInDate'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.login, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Check-in: ${_formatDate(booking['checkInDate'])}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Check-out Date
+            if (booking['checkOutDate'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.logout, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Check-out: ${_formatDate(booking['checkOutDate'])}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Duration
+            if (booking['numberOfNights'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.nights_stay, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Duration: ${booking['numberOfNights']} night${booking['numberOfNights'] > 1 ? 's' : ''}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Room and Guest Details
+            Row(
+              children: [
+                Icon(Icons.door_front_door, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Rooms: ${booking['numberOfRooms'] ?? 1}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+                SizedBox(width: 20),
+                Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Guests: ${booking['numberOfGuests'] ?? 1}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+
+            // Payment Info
+            Row(
+              children: [
+                Icon(Icons.payment, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Payment: ${booking['paymentMethod'] ?? 'N/A'}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Price Breakdown (if available)
+            if (booking['hotel']?['pricePerNight'] != null && booking['numberOfNights'] != null) ...[
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Price per night:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'MYR ${booking['hotel']['pricePerNight']?.toStringAsFixed(2) ?? '0.00'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${booking['numberOfNights']} night${booking['numberOfNights'] > 1 ? 's' : ''} × ${booking['numberOfRooms'] ?? 1} room${(booking['numberOfRooms'] ?? 1) > 1 ? 's' : ''}:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
+
+            // Total price and booking ID
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                Text(
+                  'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF4502),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

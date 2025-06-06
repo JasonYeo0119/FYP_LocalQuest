@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:localquest/Module_Financial/Paymentloading.dart';
 import 'package:localquest/Model/attraction_model.dart';
+import '../Model/hotel.dart';
 
 class BookingPaymentPage extends StatefulWidget {
   // Transport booking parameters
@@ -11,9 +12,21 @@ class BookingPaymentPage extends StatefulWidget {
   final DateTime? departDate;
   final DateTime? returnDate;
   final int? numberOfDays;
+
+  // Attraction booking parameters
   final Attraction? attraction;
   final List<Map<String, dynamic>>? selectedTickets;
   final DateTime? visitDate;
+
+  // Hotel booking parameters
+  final Hotel? hotel;
+  final DateTime? checkInDate;
+  final DateTime? checkOutDate;
+  final int? numberOfGuests;
+  final int? numberOfRooms;
+  final int? numberOfNights;
+
+  // Common
   final double totalPrice;
 
   const BookingPaymentPage({
@@ -25,9 +38,17 @@ class BookingPaymentPage extends StatefulWidget {
     this.departDate,
     this.returnDate,
     this.numberOfDays,
+    // Attraction parameters
     this.attraction,
     this.selectedTickets,
     this.visitDate,
+    // Hotel parameters
+    this.hotel,
+    this.checkInDate,
+    this.checkOutDate,
+    this.numberOfGuests,
+    this.numberOfRooms,
+    this.numberOfNights,
     // Common
     required this.totalPrice,
   }) : super(key: key);
@@ -51,8 +72,10 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   // For attraction visit date (if not provided)
   DateTime? _selectedVisitDate;
 
-  // Check if this is an attraction booking
+  // Check booking type
   bool get isAttractionBooking => widget.attraction != null;
+  bool get isHotelBooking => widget.hotel != null;
+  bool get isTransportBooking => widget.transport != null;
 
   @override
   void initState() {
@@ -75,16 +98,14 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAttractionBooking ? 'Attraction Booking Payment' : 'Booking Summary & Payment'),
+        title: Text(_getAppBarTitle()),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isAttractionBooking
-                  ? [Color(0xFF0C1FF7), Color(0xFF02BFFF)]
-                  : [Color(0xFF7107F3), Color(0xFFFF02FA)],
+              colors: _getGradientColors(),
             ),
           ),
         ),
@@ -121,8 +142,32 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
     );
   }
 
+  String _getAppBarTitle() {
+    if (isHotelBooking) return 'Hotel Booking Payment';
+    if (isAttractionBooking) return 'Attraction Booking Payment';
+    return 'Transport Booking Payment';
+  }
+
+  List<Color> _getGradientColors() {
+    if (isHotelBooking) return [Color(0xFFFF4502), Color(0xFFFFFF00)];
+    if (isAttractionBooking) return [Color(0xFF0C1FF7), Color(0xFF02BFFF)];
+    return [Color(0xFF7107F3), Color(0xFFFF02FA)];
+  }
+
+  Color _getPrimaryColor() {
+    if (isHotelBooking) return Color(0xFFFF4502);
+    if (isAttractionBooking) return Color(0xFF0C1FF7);
+    return Color(0xFF7107F3);
+  }
+
+  IconData _getBookingIcon() {
+    if (isHotelBooking) return Icons.hotel;
+    if (isAttractionBooking) return Icons.confirmation_number;
+    return Icons.receipt_long;
+  }
+
   Widget _buildBookingSummaryCard() {
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+    Color primaryColor = _getPrimaryColor();
 
     return Card(
       elevation: 4,
@@ -133,11 +178,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           children: [
             Row(
               children: [
-                Icon(
-                    isAttractionBooking ? Icons.confirmation_number : Icons.receipt_long,
-                    color: primaryColor,
-                    size: 24
-                ),
+                Icon(_getBookingIcon(), color: primaryColor, size: 24),
                 SizedBox(width: 8),
                 Text(
                   'Booking Summary',
@@ -154,7 +195,9 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             SizedBox(height: 12),
 
             // Content based on booking type
-            if (isAttractionBooking)
+            if (isHotelBooking)
+              _buildHotelSummary()
+            else if (isAttractionBooking)
               _buildAttractionSummary()
             else
               _buildTransportSummary(),
@@ -167,11 +210,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isAttractionBooking
-                      ? [Color(0xFF0C1FF7), Color(0xFF02BFFF)]
-                      : [Color(0xFF7107F3), Color(0xFFFF02FA)],
-                ),
+                gradient: LinearGradient(colors: _getGradientColors()),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -186,7 +225,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                     ),
                   ),
                   Text(
-                    'RM ${widget.totalPrice.toStringAsFixed(2)}',
+                    'MYR ${widget.totalPrice.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -199,6 +238,90 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHotelSummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Hotel Details
+        _buildSummaryRow('Hotel Name:', widget.hotel!.name),
+        _buildSummaryRow('Address:', widget.hotel!.address),
+        _buildSummaryRow('Rating:', '${widget.hotel!.rating} ⭐'),
+
+        SizedBox(height: 16),
+
+        // Booking Details
+        _buildSummaryRow(
+          'Check-in Date:',
+          '${widget.checkInDate!.day}/${widget.checkInDate!.month}/${widget.checkInDate!.year}',
+        ),
+        _buildSummaryRow(
+          'Check-out Date:',
+          '${widget.checkOutDate!.day}/${widget.checkOutDate!.month}/${widget.checkOutDate!.year}',
+        ),
+        _buildSummaryRow('Duration:', '${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}'),
+        _buildSummaryRow('Number of Rooms:', '${widget.numberOfRooms}'),
+        _buildSummaryRow('Number of Guests:', '${widget.numberOfGuests}'),
+
+        SizedBox(height: 16),
+
+        // Price Breakdown
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withOpacity(0.2)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Price per night:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Text(
+                    'MYR ${widget.hotel!.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''} × ${widget.numberOfRooms} room${widget.numberOfRooms! > 1 ? 's' : ''}:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'MYR ${widget.totalPrice.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -256,7 +379,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                       ),
                     ),
                     Text(
-                      'RM ${ticket['price'].toStringAsFixed(2)} x ${ticket['quantity']}',
+                      'MYR ${ticket['price'].toStringAsFixed(2)} x ${ticket['quantity']}',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -276,7 +399,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                       ),
                     ),
                     Text(
-                      'RM ${ticket['subtotal'].toStringAsFixed(2)}',
+                      'MYR ${ticket['subtotal'].toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -430,7 +553,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildContactInformationCard() {
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+    Color primaryColor = _getPrimaryColor();
 
     return Card(
       elevation: 4,
@@ -496,7 +619,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildPaymentDetailsCard() {
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+    Color primaryColor = _getPrimaryColor();
 
     return Card(
       elevation: 4,
@@ -629,7 +752,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildPayNowButton() {
-    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+    Color primaryColor = _getPrimaryColor();
 
     return SizedBox(
       width: double.infinity,
@@ -666,7 +789,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Icon(Icons.lock, size: 20),
             SizedBox(width: 8),
             Text(
-              'Pay Now - RM ${widget.totalPrice.toStringAsFixed(2)}',
+              'Pay Now - MYR ${widget.totalPrice.toStringAsFixed(2)}',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
@@ -747,19 +870,25 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           cardNumber: _cardNumberController.text,
           expiry: _expiryController.text,
           cvv: _cvvController.text,
-          // Transport parameters (will be null for attraction bookings)
+          totalPrice: widget.totalPrice,
+          // Transport parameters (will be null for other bookings)
           transport: widget.transport,
           selectedTime: widget.selectedTime,
           selectedSeats: widget.selectedSeats ?? [],
           departDate: widget.departDate,
           returnDate: widget.returnDate,
           numberOfDays: widget.numberOfDays,
-          // Attraction parameters (will be null for transport bookings)
+          // Attraction parameters (will be null for other bookings)
           attraction: widget.attraction,
           selectedTickets: widget.selectedTickets,
           visitDate: widget.visitDate ?? _selectedVisitDate,
-          // Common parameters
-          totalPrice: widget.totalPrice,
+          // Hotel parameters (will be null for other bookings)
+          hotel: widget.hotel,
+          checkInDate: widget.checkInDate,
+          checkOutDate: widget.checkOutDate,
+          numberOfGuests: widget.numberOfGuests,
+          numberOfRooms: widget.numberOfRooms,
+          numberOfNights: widget.numberOfNights,
         )),
       );
 
