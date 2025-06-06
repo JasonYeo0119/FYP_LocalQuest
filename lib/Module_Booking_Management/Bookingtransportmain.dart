@@ -2,18 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:localquest/Module_Booking_Management/Bookingallinone.dart' hide Transport;
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart' hide Transport;
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
-import 'package:localquest/Module_Booking_Management/Searchresult.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'Transportsearchresultscreen.dart';
 import '../services/transport_service.dart';
 import '../Model/transport.dart';
-
-@override
-void Search(BuildContext ctx) {
-  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Searchresult();
-  }));
-}
 
 @override
 void Allinone(BuildContext ctx) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
-import 'package:localquest/Module_Booking_Management/Searchresult.dart';
 import '../Model/hotel.dart';
 import '../services/mock_hotel_service.dart';
 import '../widgets/hotel_card.dart';
@@ -33,13 +32,6 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
   bool _showResults = false;
   List<Hotel> _searchResults = [];
   String _errorMessage = '';
-
-  // Navigation methods
-  void Search(BuildContext ctx) {
-    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-      return Searchresult();
-    }));
-  }
 
   void Allinone(BuildContext ctx) {
     Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {

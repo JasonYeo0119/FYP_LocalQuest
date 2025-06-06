@@ -1,4 +1,3 @@
-// attraction_model.dart
 class Attraction {
   final String id;
   final String name;
@@ -6,12 +5,9 @@ class Attraction {
   final String city;
   final String state;
   final String description;
-  final double adultPrice;
-  final double kidPrice;
-  final double foreignAdultPrice;
-  final double foreignKidPrice;
-  final List<String> types;
-  final String imageUrl;
+  final List<String> type;
+  final List<PricingInfo> pricing;
+  final List<String> images;
 
   Attraction({
     required this.id,
@@ -20,15 +16,30 @@ class Attraction {
     required this.city,
     required this.state,
     required this.description,
-    required this.adultPrice,
-    required this.kidPrice,
-    required this.foreignAdultPrice,
-    required this.foreignKidPrice,
-    required this.types,
-    required this.imageUrl,
+    required this.type,
+    required this.pricing,
+    required this.images,
   });
 
-  factory Attraction.fromMap(Map<String, dynamic> data, String id) {
+  // Factory constructor to create Attraction from Firebase data
+  factory Attraction.fromMap(String id, Map<dynamic, dynamic> data) {
+    List<PricingInfo> pricingList = [];
+    if (data['pricing'] != null) {
+      for (var item in data['pricing']) {
+        pricingList.add(PricingInfo.fromMap(item));
+      }
+    }
+
+    List<String> typeList = [];
+    if (data['type'] != null) {
+      typeList = List<String>.from(data['type']);
+    }
+
+    List<String> imagesList = [];
+    if (data['images'] != null) {
+      imagesList = List<String>.from(data['images']);
+    }
+
     return Attraction(
       id: id,
       name: data['name'] ?? '',
@@ -36,19 +47,47 @@ class Attraction {
       city: data['city'] ?? '',
       state: data['state'] ?? '',
       description: data['description'] ?? '',
-      adultPrice: (data['adultprice'] ?? 0).toDouble(),
-      kidPrice: (data['kidprice'] ?? 0).toDouble(),
-      foreignAdultPrice: (data['foreignadultprice'] ?? 0).toDouble(),
-      foreignKidPrice: (data['foreignkidprice'] ?? 0).toDouble(),
-      types: _parseTypes(data['type']),
-      imageUrl: data['image'] ?? '',
+      type: typeList,
+      pricing: pricingList,
+      images: imagesList,
     );
   }
 
-  static List<String> _parseTypes(dynamic typeData) {
-    if (typeData is Map) {
-      return typeData.values.whereType<String>().toList();
-    }
-    return [];
+  // Convert Attraction to Map for Firebase
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'address': address,
+      'city': city,
+      'state': state,
+      'description': description,
+      'type': type,
+      'pricing': pricing.map((p) => p.toMap()).toList(),
+      'images': images,
+    };
+  }
+}
+
+class PricingInfo {
+  final String remark;
+  final double price;
+
+  PricingInfo({
+    required this.remark,
+    required this.price,
+  });
+
+  factory PricingInfo.fromMap(Map<dynamic, dynamic> data) {
+    return PricingInfo(
+      remark: data['remark'] ?? '',
+      price: (data['price'] ?? 0.0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'remark': remark,
+      'price': price,
+    };
   }
 }

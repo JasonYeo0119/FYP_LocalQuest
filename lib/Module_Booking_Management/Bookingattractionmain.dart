@@ -4,12 +4,12 @@ import 'package:localquest/Module_Booking_Management/Bookingallinone.dart';
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
-import 'package:localquest/Module_Booking_Management/Searchresult.dart';
+import 'Attractionsearchresult.dart';
 
 @override
 void Search(BuildContext ctx, String query) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-    return Searchresult(initialQuery: query);
+    return AttractionSearchResults(initialQuery: query);
   }));
 }
 
@@ -54,38 +54,12 @@ class Bookingattractionmain extends StatefulWidget {
 }
 
 class _BookingattractionmainState extends State<Bookingattractionmain> {
-  TextEditingController _dateController = TextEditingController();
   TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _dateController = TextEditingController(
-      text: DateFormat('yyyy-MM-dd').format(DateTime.now()), // Default to today
-    );
-  }
-
-  @override
   void dispose() {
-    _dateController.dispose(); // Dispose controller to free memory
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime now = DateTime.now();
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now, // Only allow today or future dates
-      lastDate: DateTime(2100),
-    );
-
-    if (pickedDate != null && mounted) {
-      setState(() {
-        _dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate); // Update UI
-      });
-    }
   }
 
   Widget _buildSearchForm(double screenWidth, double screenHeight) {
@@ -129,6 +103,12 @@ class _BookingattractionmainState extends State<Bookingattractionmain> {
               ),
               style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
               textAlignVertical: TextAlignVertical.center,
+              // Added onSubmitted to allow search on Enter key
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  Search(context, value.trim());
+                }
+              },
             ),
           ),
 
@@ -153,46 +133,18 @@ class _BookingattractionmainState extends State<Bookingattractionmain> {
 
           SizedBox(height: screenHeight * 0.02),
 
-          // Date input and search button row
-          Row(
-            children: [
-              // Date input field
-              Container(
-                width: screenWidth * 0.46,
-                height: screenHeight * 0.045,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black, width: 1),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
-                alignment: Alignment.center,
-                child: TextField(
-                  controller: _dateController,
-                  readOnly: true,
-                  onTap: () => _selectDate(context),
-                  decoration: InputDecoration(
-                    hintText: 'Today',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                  textAlignVertical: TextAlignVertical.center,
-                ),
-              ),
-
-              Spacer(), // Pushes search button to the right
-            ],
-          ),
-
-          SizedBox(height: screenHeight * 0.025),
-
           // Search button
           Center(
             child: GestureDetector(
               onTap: () {
-                Search(context, _searchController.text);
+                // Modified to handle empty search query
+                String searchQuery = _searchController.text.trim();
+                if (searchQuery.isEmpty) {
+                  // If search is empty, show all attractions
+                  Search(context, '');
+                } else {
+                  Search(context, searchQuery);
+                }
               },
               child: Container(
                 width: screenWidth * 0.39,

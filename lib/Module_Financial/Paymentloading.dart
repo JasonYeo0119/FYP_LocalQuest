@@ -8,31 +8,44 @@ import 'package:localquest/Module_Financial/Paymentstatus_F.dart';
 import 'package:localquest/Module_Financial/Paymentstatus_S.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:localquest/Model/attraction_model.dart';
 
 class Paymentloading extends StatefulWidget {
   final String cardNumber;
   final String expiry;
   final String cvv;
-  final Map<String, dynamic> transport;
+  final double totalPrice;
+
+  // Transport booking parameters (optional)
+  final Map<String, dynamic>? transport;
   final String? selectedTime;
   final List<int> selectedSeats;
-  final double totalPrice;
   final DateTime? departDate;
   final DateTime? returnDate;
   final int? numberOfDays;
+
+  // Attraction booking parameters (optional)
+  final Attraction? attraction;
+  final List<Map<String, dynamic>>? selectedTickets;
+  final DateTime? visitDate;
 
   const Paymentloading({
     Key? key,
     required this.cardNumber,
     required this.expiry,
     required this.cvv,
-    required this.transport,
-    this.selectedTime,
-    required this.selectedSeats,
     required this.totalPrice,
+    // Transport parameters
+    this.transport,
+    this.selectedTime,
+    this.selectedSeats = const [],
     this.departDate,
     this.returnDate,
     this.numberOfDays,
+    // Attraction parameters
+    this.attraction,
+    this.selectedTickets,
+    this.visitDate,
   }) : super(key: key);
 
   @override
@@ -52,6 +65,9 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   static const String VALID_CARD_NUMBER = "4848100061531890";
   static const String VALID_CARD_DATE = "1226";
   static const String VALID_CARD_CVV = "550";
+
+  // Check if this is an attraction booking
+  bool get isAttractionBooking => widget.attraction != null;
 
   // Method to generate random booking ID
   String _generateBookingId() {
@@ -101,18 +117,39 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         Map<String, dynamic> bookingData = {
           'bookingId': bookingId,
           'userId': userId,
-          'transport': widget.transport,
-          'selectedTime': widget.selectedTime,
-          'selectedSeats': widget.selectedSeats,
           'totalPrice': widget.totalPrice,
-          'departDate': widget.departDate?.toIso8601String(),
-          'returnDate': widget.returnDate?.toIso8601String(),
-          'numberOfDays': widget.numberOfDays,
           'bookingDate': DateTime.now().toIso8601String(),
           'status': 'confirmed',
           'paymentMethod': 'Credit Card',
           'cardLastFour': widget.cardNumber.substring(widget.cardNumber.length - 4),
+          'bookingType': isAttractionBooking ? 'attraction' : 'transport',
         };
+
+        // Add booking-specific data
+        if (isAttractionBooking) {
+          // Attraction booking data
+          bookingData.addAll({
+            'attraction': {
+              'id': widget.attraction!.id,
+              'name': widget.attraction!.name,
+              'city': widget.attraction!.city,
+              'state': widget.attraction!.state,
+              'address': widget.attraction!.address,
+            },
+            'selectedTickets': widget.selectedTickets,
+            'visitDate': widget.visitDate?.toIso8601String(),
+          });
+        } else {
+          // Transport booking data
+          bookingData.addAll({
+            'transport': widget.transport,
+            'selectedTime': widget.selectedTime,
+            'selectedSeats': widget.selectedSeats,
+            'departDate': widget.departDate?.toIso8601String(),
+            'returnDate': widget.returnDate?.toIso8601String(),
+            'numberOfDays': widget.numberOfDays,
+          });
+        }
 
         // Save to user's bookings using the custom booking ID as key
         await _database.child('users').child(userId).child('bookings').child(bookingId).set(bookingData);
@@ -120,7 +157,11 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         // Save to general bookings collection using the custom booking ID as key
         await _database.child('bookings').child(bookingId).set(bookingData);
 
-        print('Booking saved successfully with ID: $bookingId');
+        // Save to specific collection based on booking type
+        String collectionName = isAttractionBooking ? 'attraction_bookings' : 'transport_bookings';
+        await _database.child(collectionName).child(bookingId).set(bookingData);
+
+        print('${isAttractionBooking ? 'Attraction' : 'Transport'} booking saved successfully with ID: $bookingId');
       } else {
         print('No user logged in');
       }
@@ -144,13 +185,13 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
       // Save booking to Firebase before navigating to success
       await _saveBookingToFirebase();
 
-      // Navigate to Payment Success
+      // Navigate to your existing Payment Success page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => PaymentSuccess()),
       );
     } else {
-      // Navigate to Payment Failed
+      // Navigate to your existing Payment Failed page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => PaymentFailed()),
@@ -166,6 +207,10 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic colors based on booking type
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF0816A7);
+    IconData cardIcon = isAttractionBooking ? Icons.confirmation_number : Icons.credit_card;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -188,7 +233,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
                 width: 120,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Color(0xFF0816A7),
+                  color: primaryColor,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black26,
@@ -199,7 +244,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
                 ),
                 child: Center(
                   child: Icon(
-                    Icons.credit_card,
+                    cardIcon,
                     size: 50,
                     color: Colors.white,
                   ),
@@ -210,7 +255,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
             // Loading spinner
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0816A7)),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
               strokeWidth: 3,
             ),
             SizedBox(height: 30),
@@ -221,12 +266,24 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF0816A7),
+                color: primaryColor,
               ),
             ),
             SizedBox(height: 15),
 
-            // Description
+            // Description with booking type context
+            Text(
+              isAttractionBooking
+                  ? "Processing your attraction booking..."
+                  : "Processing your transport booking...",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 5),
+
             Text(
               "Please do not close this page",
               style: GoogleFonts.poppins(
@@ -246,6 +303,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   }
 
   Widget _buildAnimatedDots() {
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF0816A7);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(3, (index) {
@@ -263,7 +322,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             height: 8,
             width: 8,
             decoration: BoxDecoration(
-              color: Color(0xFF0816A7),
+              color: primaryColor,
               shape: BoxShape.circle,
             ),
           ),

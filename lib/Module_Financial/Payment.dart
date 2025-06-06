@@ -1,25 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:localquest/Module_Financial/Paymentloading.dart';
+import 'package:localquest/Model/attraction_model.dart';
 
 class BookingPaymentPage extends StatefulWidget {
-  final Map<String, dynamic> transport;
+  // Transport booking parameters
+  final Map<String, dynamic>? transport;
   final String? selectedTime;
-  final List<int> selectedSeats;
-  final double totalPrice;
+  final List<int>? selectedSeats;
   final DateTime? departDate;
   final DateTime? returnDate;
   final int? numberOfDays;
+  final Attraction? attraction;
+  final List<Map<String, dynamic>>? selectedTickets;
+  final DateTime? visitDate;
+  final double totalPrice;
 
   const BookingPaymentPage({
     Key? key,
-    required this.transport,
+    // Transport parameters
+    this.transport,
     this.selectedTime,
-    required this.selectedSeats,
-    required this.totalPrice,
+    this.selectedSeats,
     this.departDate,
     this.returnDate,
     this.numberOfDays,
+    this.attraction,
+    this.selectedTickets,
+    this.visitDate,
+    // Common
+    required this.totalPrice,
   }) : super(key: key);
 
   @override
@@ -38,6 +48,18 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   String _selectedPaymentMethod = 'credit_card';
   bool _isProcessing = false;
 
+  // For attraction visit date (if not provided)
+  DateTime? _selectedVisitDate;
+
+  // Check if this is an attraction booking
+  bool get isAttractionBooking => widget.attraction != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedVisitDate = widget.visitDate;
+  }
+
   @override
   void dispose() {
     _cardNumberController.dispose();
@@ -53,17 +75,20 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Booking Summary & Payment'),
+        title: Text(isAttractionBooking ? 'Attraction Booking Payment' : 'Booking Summary & Payment'),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
+              colors: isAttractionBooking
+                  ? [Color(0xFF0C1FF7), Color(0xFF02BFFF)]
+                  : [Color(0xFF7107F3), Color(0xFFFF02FA)],
             ),
           ),
         ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -73,6 +98,12 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             // Booking Summary Card
             _buildBookingSummaryCard(),
             SizedBox(height: 24),
+
+            // Visit Date Selection (for attractions only)
+            if (isAttractionBooking && widget.visitDate == null)
+              _buildVisitDateCard(),
+            if (isAttractionBooking && widget.visitDate == null)
+              SizedBox(height: 24),
 
             // Contact Information
             _buildContactInformationCard(),
@@ -91,6 +122,8 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildBookingSummaryCard() {
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+
     return Card(
       elevation: 4,
       child: Padding(
@@ -100,14 +133,18 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.receipt_long, color: Color(0xFF7107F3), size: 24),
+                Icon(
+                    isAttractionBooking ? Icons.confirmation_number : Icons.receipt_long,
+                    color: primaryColor,
+                    size: 24
+                ),
                 SizedBox(width: 8),
                 Text(
                   'Booking Summary',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF7107F3),
+                    color: primaryColor,
                   ),
                 ),
               ],
@@ -116,72 +153,25 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Divider(),
             SizedBox(height: 12),
 
-            // Transport Details
-            _buildSummaryRow('Transport Name:', widget.transport['name']?.toString() ?? 'Unknown'),
-            _buildSummaryRow('Transport Type:', widget.transport['type']?.toString() ?? 'Unknown'),
-
-            if (widget.transport['type']?.toString().toLowerCase() == 'car') ...[
-              _buildSummaryRow('Location:', widget.transport['location']?.toString() ?? widget.transport['origin']?.toString() ?? 'Unknown'),
-              if (widget.numberOfDays != null)
-                _buildSummaryRow('Duration:', '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}'),
-            ] else ...[
-              _buildSummaryRow('Route:', '${widget.transport['origin']?.toString() ?? 'Unknown'} → ${widget.transport['destination']?.toString() ?? 'Unknown'}'),
-            ],
-
-            // Date Information
-            if (widget.departDate != null)
-              _buildSummaryRow(
-                widget.transport['type']?.toString().toLowerCase() == 'car' ? 'Booking Date:' : 'Departure Date:',
-                '${widget.departDate!.day}/${widget.departDate!.month}/${widget.departDate!.year}',
-              ),
-            if (widget.returnDate != null)
-              _buildSummaryRow(
-                'Return Date:',
-                '${widget.returnDate!.day}/${widget.returnDate!.month}/${widget.returnDate!.year}',
-              ),
-
-            // Time and Seats
-            if (widget.selectedTime != null)
-              _buildSummaryRow('Selected Time:', widget.selectedTime!),
-            if (widget.selectedSeats.isNotEmpty) ...[
-              _buildSummaryRow('Selected Seats:', widget.selectedSeats.join(', ')),
-              _buildSummaryRow('Number of Seats:', '${widget.selectedSeats.length}'),
-            ],
+            // Content based on booking type
+            if (isAttractionBooking)
+              _buildAttractionSummary()
+            else
+              _buildTransportSummary(),
 
             SizedBox(height: 16),
             Divider(),
             SizedBox(height: 12),
 
-            // Price Breakdown
-            if (widget.selectedSeats.isNotEmpty) ...[
-              _buildSummaryRow(
-                'Base Price per Seat:',
-                'MYR ${(widget.transport['price'] ?? 0.0).toStringAsFixed(2)}',
-                isSubtotal: true,
-              ),
-              _buildSummaryRow(
-                'Quantity:',
-                '${widget.selectedSeats.length} seat${widget.selectedSeats.length > 1 ? 's' : ''}',
-                isSubtotal: true,
-              ),
-            ] else if (widget.numberOfDays != null) ...[
-              _buildSummaryRow(
-                'Price per Day:',
-                'MYR ${(widget.transport['price'] ?? 0.0).toStringAsFixed(2)}',
-                isSubtotal: true,
-              ),
-              _buildSummaryRow(
-                'Duration:',
-                '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}',
-                isSubtotal: true,
-              ),
-            ],
-
-            SizedBox(height: 8),
+            // Total Amount
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFF7107F3).withOpacity(0.1),
+                gradient: LinearGradient(
+                  colors: isAttractionBooking
+                      ? [Color(0xFF0C1FF7), Color(0xFF02BFFF)]
+                      : [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -192,15 +182,15 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7107F3),
+                      color: Colors.white,
                     ),
                   ),
                   Text(
-                    'MYR ${widget.totalPrice.toStringAsFixed(2)}',
+                    'RM ${widget.totalPrice.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7107F3),
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -212,7 +202,163 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
     );
   }
 
-  Widget _buildContactInformationCard() {
+  Widget _buildAttractionSummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Attraction Details
+        _buildSummaryRow('Attraction:', widget.attraction!.name),
+        _buildSummaryRow('Location:', '${widget.attraction!.city}, ${widget.attraction!.state}'),
+        if (widget.attraction!.address.isNotEmpty)
+          _buildSummaryRow('Address:', widget.attraction!.address),
+
+        // Visit Date
+        if (widget.visitDate != null)
+          _buildSummaryRow(
+              'Visit Date:',
+              '${widget.visitDate!.day}/${widget.visitDate!.month}/${widget.visitDate!.year}'
+          ),
+
+        SizedBox(height: 16),
+        Text(
+          'Selected Tickets:',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: 8),
+
+        // Ticket Breakdown
+        if (widget.selectedTickets != null)
+          ...widget.selectedTickets!.map((ticket) => Container(
+            margin: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withOpacity(0.2)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        ticket['type'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'RM ${ticket['price'].toStringAsFixed(2)} x ${ticket['quantity']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Quantity: ${ticket['quantity']}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      'RM ${ticket['subtotal'].toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )).toList(),
+      ],
+    );
+  }
+
+  Widget _buildTransportSummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Transport Details
+        _buildSummaryRow('Transport Name:', widget.transport?['name']?.toString() ?? 'Unknown'),
+        _buildSummaryRow('Transport Type:', widget.transport?['type']?.toString() ?? 'Unknown'),
+
+        if (widget.transport?['type']?.toString().toLowerCase() == 'car') ...[
+          _buildSummaryRow('Location:', widget.transport?['location']?.toString() ?? widget.transport?['origin']?.toString() ?? 'Unknown'),
+          if (widget.numberOfDays != null)
+            _buildSummaryRow('Duration:', '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}'),
+        ] else ...[
+          _buildSummaryRow('Route:', '${widget.transport?['origin']?.toString() ?? 'Unknown'} → ${widget.transport?['destination']?.toString() ?? 'Unknown'}'),
+        ],
+
+        // Date Information
+        if (widget.departDate != null)
+          _buildSummaryRow(
+            widget.transport?['type']?.toString().toLowerCase() == 'car' ? 'Booking Date:' : 'Departure Date:',
+            '${widget.departDate!.day}/${widget.departDate!.month}/${widget.departDate!.year}',
+          ),
+        if (widget.returnDate != null)
+          _buildSummaryRow(
+            'Return Date:',
+            '${widget.returnDate!.day}/${widget.returnDate!.month}/${widget.returnDate!.year}',
+          ),
+
+        // Time and Seats
+        if (widget.selectedTime != null)
+          _buildSummaryRow('Selected Time:', widget.selectedTime!),
+        if (widget.selectedSeats != null && widget.selectedSeats!.isNotEmpty) ...[
+          _buildSummaryRow('Selected Seats:', widget.selectedSeats!.join(', ')),
+          _buildSummaryRow('Number of Seats:', '${widget.selectedSeats!.length}'),
+        ],
+
+        // Price Breakdown
+        if (widget.selectedSeats != null && widget.selectedSeats!.isNotEmpty) ...[
+          _buildSummaryRow(
+            'Base Price per Seat:',
+            'MYR ${(widget.transport?['price'] ?? 0.0).toStringAsFixed(2)}',
+            isSubtotal: true,
+          ),
+          _buildSummaryRow(
+            'Quantity:',
+            '${widget.selectedSeats!.length} seat${widget.selectedSeats!.length > 1 ? 's' : ''}',
+            isSubtotal: true,
+          ),
+        ] else if (widget.numberOfDays != null) ...[
+          _buildSummaryRow(
+            'Price per Day:',
+            'MYR ${(widget.transport?['price'] ?? 0.0).toStringAsFixed(2)}',
+            isSubtotal: true,
+          ),
+          _buildSummaryRow(
+            'Duration:',
+            '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}',
+            isSubtotal: true,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVisitDateCard() {
+    Color primaryColor = Color(0xFF0C1FF7);
+
     return Card(
       elevation: 4,
       child: Padding(
@@ -222,14 +368,87 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.contact_mail, color: Color(0xFF7107F3), size: 24),
+                Icon(Icons.calendar_today, color: primaryColor, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  'Visit Date',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+
+            InkWell(
+              onTap: () => _selectVisitDate(context),
+              child: Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[400]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _selectedVisitDate != null
+                          ? '${_selectedVisitDate!.day}/${_selectedVisitDate!.month}/${_selectedVisitDate!.year}'
+                          : 'Select visit date *',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _selectedVisitDate != null ? Colors.black87 : Colors.grey[600],
+                      ),
+                    ),
+                    Icon(Icons.calendar_today, color: primaryColor),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectVisitDate(BuildContext context) async {
+    DateTime now = DateTime.now();
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 1),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedVisitDate = pickedDate;
+      });
+    }
+  }
+
+  Widget _buildContactInformationCard() {
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.contact_mail, color: primaryColor, size: 24),
                 SizedBox(width: 8),
                 Text(
                   'Contact Information',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF7107F3),
+                    color: primaryColor,
                   ),
                 ),
               ],
@@ -277,6 +496,8 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildPaymentDetailsCard() {
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+
     return Card(
       elevation: 4,
       child: Padding(
@@ -288,14 +509,14 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.credit_card, color: Color(0xFF7107F3), size: 24),
+                  Icon(Icons.credit_card, color: primaryColor, size: 24),
                   SizedBox(width: 8),
                   Text(
                     'Card Details',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7107F3),
+                      color: primaryColor,
                     ),
                   ),
                 ],
@@ -408,13 +629,15 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Widget _buildPayNowButton() {
+    Color primaryColor = isAttractionBooking ? Color(0xFF0C1FF7) : Color(0xFF7107F3);
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: _isProcessing ? null : _processPayment,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF7107F3),
+          backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -443,7 +666,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Icon(Icons.lock, size: 20),
             SizedBox(width: 8),
             Text(
-              'Pay Now - MYR ${widget.totalPrice.toStringAsFixed(2)}',
+              'Pay Now - RM ${widget.totalPrice.toStringAsFixed(2)}',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
@@ -482,6 +705,20 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   }
 
   Future<void> _processPayment() async {
+    // Additional validation for attraction bookings
+    if (isAttractionBooking) {
+      // Check if visit date is selected (if not provided)
+      if (widget.visitDate == null && _selectedVisitDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please select a visit date'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     // Validate contact information
     if (_emailController.text.isEmpty || _phoneController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -490,6 +727,11 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    // Validate payment form
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -505,15 +747,20 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           cardNumber: _cardNumberController.text,
           expiry: _expiryController.text,
           cvv: _cvvController.text,
+          // Transport parameters (will be null for attraction bookings)
           transport: widget.transport,
           selectedTime: widget.selectedTime,
-          selectedSeats: widget.selectedSeats,
-          totalPrice: widget.totalPrice,
+          selectedSeats: widget.selectedSeats ?? [],
           departDate: widget.departDate,
           returnDate: widget.returnDate,
           numberOfDays: widget.numberOfDays,
-        ),
-        ),
+          // Attraction parameters (will be null for transport bookings)
+          attraction: widget.attraction,
+          selectedTickets: widget.selectedTickets,
+          visitDate: widget.visitDate ?? _selectedVisitDate,
+          // Common parameters
+          totalPrice: widget.totalPrice,
+        )),
       );
 
     } catch (e) {

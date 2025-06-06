@@ -174,16 +174,26 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   }
 
   DateTime _getRelevantDate(Map<String, dynamic> booking) {
-    // Priority: returnDate > departDate > bookingDate
-    // Use return date first as it's when the trip actually ends
+    // Check booking type and get appropriate date
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
     try {
-      if (booking['returnDate'] != null) {
-        return DateTime.parse(booking['returnDate']);
-      } else if (booking['departDate'] != null) {
-        return DateTime.parse(booking['departDate']);
+      if (bookingType == 'attraction') {
+        // For attractions, use visitDate
+        if (booking['visitDate'] != null) {
+          return DateTime.parse(booking['visitDate']);
+        }
       } else {
-        return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
+        // For transport, use returnDate > departDate > bookingDate
+        if (booking['returnDate'] != null) {
+          return DateTime.parse(booking['returnDate']);
+        } else if (booking['departDate'] != null) {
+          return DateTime.parse(booking['departDate']);
+        }
       }
+
+      // Fallback to booking date
+      return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
     } catch (e) {
       return DateTime.now();
     }
@@ -205,15 +215,31 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     String query = _searchController.text.toLowerCase();
     setState(() {
       _filteredUpcoming = _upcomingBookings.where((booking) {
-        String transportName = booking['transport']['name']?.toString().toLowerCase() ?? '';
+        String bookingType = booking['bookingType']?.toString() ?? 'transport';
+        String searchableName = '';
         String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
-        return transportName.contains(query) || bookingId.contains(query);
+
+        if (bookingType == 'attraction') {
+          searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
+        } else {
+          searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
+        }
+
+        return searchableName.contains(query) || bookingId.contains(query) || bookingType.contains(query);
       }).toList();
 
       _filteredCompleted = _completedBookings.where((booking) {
-        String transportName = booking['transport']['name']?.toString().toLowerCase() ?? '';
+        String bookingType = booking['bookingType']?.toString() ?? 'transport';
+        String searchableName = '';
         String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
-        return transportName.contains(query) || bookingId.contains(query);
+
+        if (bookingType == 'attraction') {
+          searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
+        } else {
+          searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
+        }
+
+        return searchableName.contains(query) || bookingId.contains(query) || bookingType.contains(query);
       }).toList();
     });
   }
@@ -302,7 +328,13 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
       itemCount: bookings.length,
       itemBuilder: (context, index) {
         final booking = bookings[index];
-        return _buildBookingCard(booking);
+        String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
+        if (bookingType == 'attraction') {
+          return _buildAttractionBookingCard(booking);
+        } else {
+          return _buildTransportBookingCard(booking);
+        }
       },
     );
   }
@@ -313,9 +345,9 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
       appBar: AppBar(
         title: Text("My Trips",
           style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),),
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),),
         backgroundColor: Color(0xFF0816A7),
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -467,7 +499,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking) {
+  Widget _buildTransportBookingCard(Map<String, dynamic> booking) {
     return Card(
       margin: EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -484,13 +516,21 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    booking['transport']['name'] ?? 'Transport',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0816A7),
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.directions_bus, size: 20, color: Color(0xFF0816A7)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          booking['transport']['name'] ?? 'Transport',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0816A7),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -630,6 +670,169 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0816A7),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttractionBookingCard(Map<String, dynamic> booking) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with attraction name and status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.attractions, size: 20, color: Color(0xFF0C1FF7)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          booking['attraction']?['name'] ?? 'Attraction',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0C1FF7),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(booking['status'] ?? 'pending').withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    (booking['status'] ?? 'pending').toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Location info
+            if (booking['attraction']?['city'] != null || booking['attraction']?['state'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    '${booking['attraction']?['city'] ?? ''}, ${booking['attraction']?['state'] ?? ''}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Booking details
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Booked: ${_formatDate(booking['bookingDate'])} at ${_formatTime(booking['bookingDate'])}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+
+            if (booking['visitDate'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.event, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Visit Date: ${_formatDate(booking['visitDate'])}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Selected tickets
+            if (booking['selectedTickets'] != null && booking['selectedTickets'].isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.confirmation_number, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Tickets:',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 4),
+              ...booking['selectedTickets'].map<Widget>((ticket) => Padding(
+                padding: EdgeInsets.only(left: 24, bottom: 4),
+                child: Text(
+                  '• ${ticket['type']}: ${ticket['quantity']} ticket${ticket['quantity'] > 1 ? 's' : ''} (RM ${ticket['subtotal'].toStringAsFixed(2)})',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                ),
+              )).toList(),
+              SizedBox(height: 8),
+            ],
+
+            // Payment info
+            Row(
+              children: [
+                Icon(Icons.payment, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Payment: ${booking['paymentMethod'] ?? 'N/A'}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Total price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                Text(
+                  'RM ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0C1FF7),
                   ),
                 ),
               ],
