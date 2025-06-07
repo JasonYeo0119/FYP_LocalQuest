@@ -43,6 +43,8 @@ class History extends StatefulWidget {
 class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String _selectedFilter = 'All'; // Add this line
+  List<String> _filterOptions = ['All', 'Accommodation', 'Transport', 'Attraction']; // Add this line
   List<Map<String, dynamic>> _allBookings = [];
   List<Map<String, dynamic>> _upcomingBookings = [];
   List<Map<String, dynamic>> _completedBookings = [];
@@ -222,11 +224,15 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     String query = _searchController.text.toLowerCase();
     setState(() {
       _filteredUpcoming = _upcomingBookings.where((booking) {
-        return _matchesSearch(booking, query);
+        bool matchesSearch = _matchesSearch(booking, query);
+        bool matchesFilter = _matchesFilter(booking);
+        return matchesSearch && matchesFilter;
       }).toList();
 
       _filteredCompleted = _completedBookings.where((booking) {
-        return _matchesSearch(booking, query);
+        bool matchesSearch = _matchesSearch(booking, query);
+        bool matchesFilter = _matchesFilter(booking);
+        return matchesSearch && matchesFilter;
       }).toList();
     });
   }
@@ -252,6 +258,23 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
         bookingId.contains(query) ||
         bookingType.contains(query) ||
         roomTypesString.contains(query);
+  }
+
+  bool _matchesFilter(Map<String, dynamic> booking) {
+    if (_selectedFilter == 'All') return true;
+
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
+    switch (_selectedFilter) {
+      case 'Accommodation':
+        return bookingType == 'hotel';
+      case 'Transport':
+        return bookingType == 'transport';
+      case 'Attraction':
+        return bookingType == 'attraction';
+      default:
+        return true;
+    }
   }
 
   // Helper method to get all room types from a booking for search purposes
@@ -401,7 +424,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 children: [
                   Icon(Icons.schedule, size: 20),
                   SizedBox(width: 8),
-                  Text('Upcoming (${_upcomingBookings.length})'),
+                  Text('Upcoming (${_filteredUpcoming.length})'),
                 ],
               ),
             ),
@@ -411,7 +434,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 children: [
                   Icon(Icons.history, size: 20),
                   SizedBox(width: 8),
-                  Text('Completed (${_completedBookings.length})'),
+                  Text('Completed (${_filteredCompleted.length})'),
                 ],
               ),
             ),
@@ -443,6 +466,47 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               style: TextStyle(fontSize: 14, color: Colors.black),
             ),
           ),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16),
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _filterOptions.length,
+              itemBuilder: (context, index) {
+                String filter = _filterOptions[index];
+                bool isSelected = _selectedFilter == filter;
+
+                return Container(
+                  margin: EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(
+                      filter,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Color(0xFF0816A7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedFilter = filter;
+                      });
+                      _filterBookings();
+                    },
+                    selectedColor: Color(0xFF0816A7),
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Color(0xFF0816A7),
+                      width: 1,
+                    ),
+                    showCheckmark: false,
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 8), // Add some spacing
 
           // Tab content
           Expanded(
