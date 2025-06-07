@@ -26,6 +26,9 @@ class BookingPaymentPage extends StatefulWidget {
   final int? numberOfRooms;
   final int? numberOfNights;
 
+  // Updated room type parameters - now supports multiple room types
+  final List<Map<String, dynamic>>? selectedRoomTypes;
+
   // Common
   final double totalPrice;
 
@@ -49,6 +52,8 @@ class BookingPaymentPage extends StatefulWidget {
     this.numberOfGuests,
     this.numberOfRooms,
     this.numberOfNights,
+    // Updated room type parameters
+    this.selectedRoomTypes,
     // Common
     required this.totalPrice,
   }) : super(key: key);
@@ -252,6 +257,99 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
 
         SizedBox(height: 16),
 
+        // Multiple Room Types Information
+        if (widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.hotel_class, color: Colors.orange[600], size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Selected Room Types',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange[800],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+                ...widget.selectedRoomTypes!.map((roomTypeData) {
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${roomTypeData['quantity']}x ${roomTypeData['roomType']}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'MYR ${roomTypeData['pricePerNight'].toStringAsFixed(0)}/night',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              'MYR ${roomTypeData['totalPrice'].toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
+
         // Booking Details
         _buildSummaryRow(
           'Check-in Date:',
@@ -262,12 +360,12 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           '${widget.checkOutDate!.day}/${widget.checkOutDate!.month}/${widget.checkOutDate!.year}',
         ),
         _buildSummaryRow('Duration:', '${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}'),
-        _buildSummaryRow('Number of Rooms:', '${widget.numberOfRooms}'),
+        _buildSummaryRow('Total Rooms:', '${widget.numberOfRooms}'),
         _buildSummaryRow('Number of Guests:', '${widget.numberOfGuests}'),
 
         SizedBox(height: 16),
 
-        // Price Breakdown
+        // Price Breakdown Summary
         Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -277,41 +375,51 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           ),
           child: Column(
             children: [
+              if (widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
+                // Show room-wise breakdown
+                ...widget.selectedRoomTypes!.map((roomTypeData) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${roomTypeData['quantity']}x ${roomTypeData['roomType']}:',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'MYR ${roomTypeData['totalPrice'].toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                Divider(thickness: 1, color: Colors.orange.withOpacity(0.3)),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Price per night:',
+                    'Grand Total:',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    'MYR ${widget.hotel!.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''} × ${widget.numberOfRooms} room${widget.numberOfRooms! > 1 ? 's' : ''}:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
                   Text(
                     'MYR ${widget.totalPrice.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: Colors.green[700],
                     ),
@@ -889,6 +997,8 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           numberOfGuests: widget.numberOfGuests,
           numberOfRooms: widget.numberOfRooms,
           numberOfNights: widget.numberOfNights,
+          // Updated room type parameters
+          selectedRoomTypes: widget.selectedRoomTypes,
         )),
       );
 

@@ -38,6 +38,9 @@ class Paymentloading extends StatefulWidget {
   final int? numberOfRooms;
   final int? numberOfNights;
 
+  // Updated room type parameters - now supports multiple room types
+  final List<Map<String, dynamic>>? selectedRoomTypes;
+
   const Paymentloading({
     Key? key,
     required this.cardNumber,
@@ -62,6 +65,8 @@ class Paymentloading extends StatefulWidget {
     this.numberOfGuests,
     this.numberOfRooms,
     this.numberOfNights,
+    // Updated room type parameters
+    this.selectedRoomTypes,
   }) : super(key: key);
 
   @override
@@ -145,22 +150,56 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
         // Add booking-specific data
         if (isHotelBooking) {
-          // Hotel booking data
+          // Hotel booking data with multiple room types information
+          Map<String, dynamic> hotelData = {
+            'name': widget.hotel!.name,
+            'address': widget.hotel!.address,
+            'rating': widget.hotel!.rating,
+            'pricePerNight': widget.hotel!.price,
+            'imageUrl': widget.hotel!.imageUrl,
+            'amenities': widget.hotel!.amenities,
+          };
+
           bookingData.addAll({
-            'hotel': {
-              'name': widget.hotel!.name,
-              'address': widget.hotel!.address,
-              'rating': widget.hotel!.rating,
-              'pricePerNight': widget.hotel!.price,
-              'imageUrl': widget.hotel!.imageUrl,
-              'amenities': widget.hotel!.amenities,
-            },
+            'hotel': hotelData,
             'checkInDate': widget.checkInDate?.toIso8601String(),
             'checkOutDate': widget.checkOutDate?.toIso8601String(),
             'numberOfGuests': widget.numberOfGuests,
             'numberOfRooms': widget.numberOfRooms,
             'numberOfNights': widget.numberOfNights,
           });
+
+          // Add multiple room types information
+          if (widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) {
+            // Save the complete room type details
+            bookingData['selectedRoomTypes'] = widget.selectedRoomTypes;
+
+            // Create a summary of room types for easy querying
+            List<String> roomTypeSummary = [];
+            double totalRoomTypePrice = 0.0;
+
+            for (var roomTypeData in widget.selectedRoomTypes!) {
+              String roomType = roomTypeData['roomType'] ?? 'Unknown Room';
+              int quantity = roomTypeData['quantity'] ?? 1;
+              double pricePerNight = roomTypeData['pricePerNight'] ?? 0.0;
+              double totalPrice = roomTypeData['totalPrice'] ?? 0.0;
+
+              roomTypeSummary.add('${quantity}x $roomType');
+              totalRoomTypePrice += totalPrice;
+            }
+
+            // Add summary fields for easier querying and display
+            bookingData['roomTypeSummary'] = roomTypeSummary.join(', ');
+            bookingData['totalRoomTypesPrice'] = totalRoomTypePrice;
+            bookingData['numberOfRoomTypes'] = widget.selectedRoomTypes!.length;
+
+            // Add individual room type names for filtering
+            List<String> roomTypeNames = widget.selectedRoomTypes!
+                .map((room) => room['roomType'].toString())
+                .toList();
+            bookingData['roomTypeNames'] = roomTypeNames;
+          }
+
         } else if (isAttractionBooking) {
           // Attraction booking data
           bookingData.addAll({
@@ -197,6 +236,17 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         await _database.child(collectionName).child(bookingId).set(bookingData);
 
         print('${_getBookingType()} booking saved successfully with ID: $bookingId');
+
+        // Print room type information for hotel bookings
+        if (isHotelBooking && widget.selectedRoomTypes != null) {
+          print('Selected Room Types:');
+          for (var roomTypeData in widget.selectedRoomTypes!) {
+            print('  - ${roomTypeData['quantity']}x ${roomTypeData['roomType']} @ MYR ${roomTypeData['pricePerNight']}/night');
+            print('    Total: MYR ${roomTypeData['totalPrice']}');
+          }
+          print('Total for all rooms: MYR ${widget.totalPrice}');
+        }
+
       } else {
         print('No user logged in');
       }
@@ -250,6 +300,22 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  // Get room type summary for display
+  String _getRoomTypeSummary() {
+    if (widget.selectedRoomTypes == null || widget.selectedRoomTypes!.isEmpty) {
+      return '';
+    }
+
+    List<String> roomSummary = [];
+    for (var roomTypeData in widget.selectedRoomTypes!) {
+      String roomType = roomTypeData['roomType'] ?? 'Unknown Room';
+      int quantity = roomTypeData['quantity'] ?? 1;
+      roomSummary.add('${quantity}x $roomType');
+    }
+
+    return roomSummary.join(', ');
   }
 
   @override
@@ -327,7 +393,51 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
                 color: Colors.grey[600],
               ),
             ),
-            SizedBox(height: 5),
+
+            // Show room type information for hotel bookings
+            if (isHotelBooking && widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
+              SizedBox(height: 15),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.hotel_class, color: Colors.orange[700], size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          "Selected Rooms:",
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      _getRoomTypeSummary(),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            SizedBox(height: 10),
 
             Text(
               "Please do not close this page",
@@ -341,6 +451,49 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             // Animated dots to indicate processing
             SizedBox(height: 10),
             _buildAnimatedDots(),
+
+            // Show total amount
+            SizedBox(height: 20),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _getGradientColors(),
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Text(
+                "Total: MYR ${widget.totalPrice.toStringAsFixed(2)}",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // Show number of rooms and nights for hotel bookings
+            if (isHotelBooking && widget.numberOfRooms != null && widget.numberOfNights != null) ...[
+              SizedBox(height: 10),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                ),
+                child: Text(
+                  "${widget.numberOfRooms} room${widget.numberOfRooms! > 1 ? 's' : ''} × ${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -353,6 +506,12 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     return Color(0xFF0816A7);
   }
 
+  List<Color> _getGradientColors() {
+    if (isHotelBooking) return [Color(0xFFFF4502), Color(0xFFFFFF00)];
+    if (isAttractionBooking) return [Color(0xFF0C1FF7), Color(0xFF02BFFF)];
+    return [Color(0xFF7107F3), Color(0xFFFF02FA)];
+  }
+
   IconData _getCardIcon() {
     if (isHotelBooking) return Icons.hotel;
     if (isAttractionBooking) return Icons.confirmation_number;
@@ -360,7 +519,21 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   }
 
   String _getProcessingDescription() {
-    if (isHotelBooking) return "Processing your hotel booking...";
+    if (isHotelBooking) {
+      if (widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) {
+        int totalRooms = widget.selectedRoomTypes!
+            .map((room) => room['quantity'] as int? ?? 1)
+            .fold(0, (sum, quantity) => sum + quantity);
+
+        if (totalRooms > 1) {
+          return "Processing your ${totalRooms} rooms booking...";
+        } else {
+          String roomType = widget.selectedRoomTypes!.first['roomType'] ?? 'room';
+          return "Processing your ${roomType.toLowerCase()} booking...";
+        }
+      }
+      return "Processing your hotel booking...";
+    }
     if (isAttractionBooking) return "Processing your attraction booking...";
     return "Processing your transport booking...";
   }

@@ -196,9 +196,9 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
           Text(
             'Popular Destinations in Malaysia',
             style: TextStyle(
-              fontSize: screenWidth * 0.041,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87
+                fontSize: screenWidth * 0.041,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87
             ),
           ),
           SizedBox(height: 8),
@@ -634,9 +634,9 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
       appBar: AppBar(
         title: Text("All Rooms",
           style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
@@ -672,10 +672,7 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
   }
 }
 
-// Create the missing HotelSearchResultsScreen class
-// Updated HotelSearchResultsScreen in Bookinghotel.dart
-// Replace the existing HotelSearchResultsScreen class with this updated version
-
+// Updated HotelSearchResultsScreen with enhanced room type information
 class HotelSearchResultsScreen extends StatelessWidget {
   final List<Hotel> hotels;
   final String destination;
@@ -767,21 +764,41 @@ class HotelSearchResultsScreen extends StatelessWidget {
             ),
           ),
 
-          // Results count
-          if (hotels.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey[100],
-              child: Text(
-                '${hotels.length} hotel${hotels.length > 1 ? 's' : ''} found',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
+          // Results count and sorting options
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: Colors.grey[100],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${hotels.length} hotel${hotels.length > 1 ? 's' : ''} found',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
+                // Add sorting information if needed
+                if (hotels.isNotEmpty)
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue[600]),
+                      SizedBox(width: 4),
+                      Text(
+                        'Showing base prices',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
+          ),
 
           Expanded(
             child: hotels.isEmpty
@@ -833,17 +850,6 @@ class HotelSearchResultsScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
-
-      // Add floating action button to modify search
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pop(context); // Go back to search screen
-        },
-        backgroundColor: Color(0xFFFF4502),
-        foregroundColor: Colors.white,
-        icon: Icon(Icons.edit_location),
-        label: Text('Modify Search'),
       ),
     );
   }

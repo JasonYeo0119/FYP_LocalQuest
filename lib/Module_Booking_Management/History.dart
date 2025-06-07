@@ -222,37 +222,63 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     String query = _searchController.text.toLowerCase();
     setState(() {
       _filteredUpcoming = _upcomingBookings.where((booking) {
-        String bookingType = booking['bookingType']?.toString() ?? 'transport';
-        String searchableName = '';
-        String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
-
-        if (bookingType == 'hotel') {
-          searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
-        } else if (bookingType == 'attraction') {
-          searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
-        } else {
-          searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
-        }
-
-        return searchableName.contains(query) || bookingId.contains(query) || bookingType.contains(query);
+        return _matchesSearch(booking, query);
       }).toList();
 
       _filteredCompleted = _completedBookings.where((booking) {
-        String bookingType = booking['bookingType']?.toString() ?? 'transport';
-        String searchableName = '';
-        String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
-
-        if (bookingType == 'hotel') {
-          searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
-        } else if (bookingType == 'attraction') {
-          searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
-        } else {
-          searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
-        }
-
-        return searchableName.contains(query) || bookingId.contains(query) || bookingType.contains(query);
+        return _matchesSearch(booking, query);
       }).toList();
     });
+  }
+
+  bool _matchesSearch(Map<String, dynamic> booking, String query) {
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+    String searchableName = '';
+    String bookingId = booking['bookingId']?.toString().toLowerCase() ?? '';
+
+    // Get room types for search
+    List<String> roomTypes = _getAllRoomTypes(booking);
+    String roomTypesString = roomTypes.join(' ').toLowerCase();
+
+    if (bookingType == 'hotel') {
+      searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
+    } else if (bookingType == 'attraction') {
+      searchableName = booking['attraction']?['name']?.toString().toLowerCase() ?? '';
+    } else {
+      searchableName = booking['transport']?['name']?.toString().toLowerCase() ?? '';
+    }
+
+    return searchableName.contains(query) ||
+        bookingId.contains(query) ||
+        bookingType.contains(query) ||
+        roomTypesString.contains(query);
+  }
+
+  // Helper method to get all room types from a booking for search purposes
+  List<String> _getAllRoomTypes(Map<String, dynamic> booking) {
+    List<String> roomTypes = [];
+
+    // Check for new format (selectedRoomTypes array)
+    if (booking['selectedRoomTypes'] != null && booking['selectedRoomTypes'] is List) {
+      List<dynamic> selectedRoomTypes = booking['selectedRoomTypes'];
+      for (var roomType in selectedRoomTypes) {
+        if (roomType is Map && roomType['roomType'] != null) {
+          roomTypes.add(roomType['roomType'].toString());
+        }
+      }
+    }
+
+    // Check for legacy format (single selectedRoomType)
+    if (booking['selectedRoomType'] != null) {
+      roomTypes.add(booking['selectedRoomType'].toString());
+    }
+
+    // Check hotel object for room type
+    if (booking['hotel']?['selectedRoomType'] != null) {
+      roomTypes.add(booking['hotel']['selectedRoomType'].toString());
+    }
+
+    return roomTypes;
   }
 
   String _formatDate(String? dateString) {
@@ -513,6 +539,176 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     );
   }
 
+  Widget _buildRoomTypesDisplay(Map<String, dynamic> booking) {
+    // Check for new format (selectedRoomTypes array)
+    if (booking['selectedRoomTypes'] != null && booking['selectedRoomTypes'] is List) {
+      List<dynamic> selectedRoomTypes = booking['selectedRoomTypes'];
+
+      if (selectedRoomTypes.isNotEmpty) {
+        return Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.hotel_class, color: Colors.orange[600], size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    selectedRoomTypes.length > 1 ? 'Room Types' : 'Room Type',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[800],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              ...selectedRoomTypes.map<Widget>((roomType) {
+                if (roomType is Map) {
+                  String roomTypeName = roomType['roomType']?.toString() ?? 'Unknown Room';
+                  int quantity = roomType['quantity'] ?? 1;
+                  double pricePerNight = roomType['pricePerNight']?.toDouble() ?? 0.0;
+                  double totalPrice = roomType['totalPrice']?.toDouble() ?? 0.0;
+
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 6),
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${quantity}x $roomTypeName',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[800],
+                                ),
+                              ),
+                            ),
+                            if (pricePerNight > 0)
+                              Text(
+                                'MYR ${pricePerNight.toStringAsFixed(0)}/night',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.orange[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (totalPrice > 0) ...[
+                          SizedBox(height: 2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Total for this room type:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                'MYR ${totalPrice.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              }).toList(),
+            ],
+          ),
+        );
+      }
+    }
+
+    // Fallback to legacy format (single selectedRoomType)
+    String? selectedRoomType = booking['selectedRoomType']?.toString() ??
+        booking['hotel']?['selectedRoomType']?.toString();
+
+    if (selectedRoomType != null) {
+      double pricePerNight = booking['roomTypePrice']?.toDouble() ??
+          booking['hotel']?['roomTypePrice']?.toDouble() ??
+          booking['hotel']?['pricePerNight']?.toDouble() ??
+          0.0;
+
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.hotel_class, color: Colors.orange[600], size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Room Type',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[800],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    selectedRoomType,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[800],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (pricePerNight > 0)
+              Text(
+                'MYR ${pricePerNight.toStringAsFixed(0)}/night',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox.shrink();
+  }
+
   Widget _buildHotelBookingCard(Map<String, dynamic> booking) {
     return Card(
       margin: EdgeInsets.only(bottom: 16),
@@ -568,6 +764,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+
+            // Room Type Information (Enhanced)
+            _buildRoomTypesDisplay(booking),
             SizedBox(height: 12),
 
             // Hotel Details
@@ -693,62 +893,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
             ),
             SizedBox(height: 12),
 
-            // Price Breakdown (if available)
-            if (booking['hotel']?['pricePerNight'] != null && booking['numberOfNights'] != null) ...[
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.2)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Price per night:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        Text(
-                          'MYR ${booking['hotel']['pricePerNight']?.toStringAsFixed(2) ?? '0.00'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${booking['numberOfNights']} night${booking['numberOfNights'] > 1 ? 's' : ''} × ${booking['numberOfRooms'] ?? 1} room${(booking['numberOfRooms'] ?? 1) > 1 ? 's' : ''}:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        Text(
-                          'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 12),
-            ],
+            // Enhanced Price Breakdown for Multiple Room Types
+            _buildPriceBreakdown(booking),
 
             // Total price and booking ID
             Row(
@@ -776,6 +922,139 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  Widget _buildPriceBreakdown(Map<String, dynamic> booking) {
+    // Check if we have multiple room types with detailed pricing
+    if (booking['selectedRoomTypes'] != null && booking['selectedRoomTypes'] is List) {
+      List<dynamic> selectedRoomTypes = booking['selectedRoomTypes'];
+
+      if (selectedRoomTypes.isNotEmpty && booking['numberOfNights'] != null) {
+        return Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Price Breakdown',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[800],
+                ),
+              ),
+              SizedBox(height: 8),
+              ...selectedRoomTypes.map<Widget>((roomType) {
+                if (roomType is Map) {
+                  String roomTypeName = roomType['roomType']?.toString() ?? 'Unknown Room';
+                  int quantity = roomType['quantity'] ?? 1;
+                  double pricePerNight = roomType['pricePerNight']?.toDouble() ?? 0.0;
+                  double totalPrice = roomType['totalPrice']?.toDouble() ?? 0.0;
+
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$roomTypeName × $quantity × ${booking['numberOfNights']} night${booking['numberOfNights'] > 1 ? 's' : ''}:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'MYR ${totalPrice.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              }).toList(),
+            ],
+          ),
+        );
+      }
+    }
+
+    // Fallback to legacy price breakdown
+    double pricePerNight = booking['roomTypePrice']?.toDouble() ??
+        booking['hotel']?['roomTypePrice']?.toDouble() ??
+        booking['hotel']?['pricePerNight']?.toDouble() ??
+        0.0;
+
+    if (pricePerNight > 0 && booking['numberOfNights'] != null) {
+      String? selectedRoomType = booking['selectedRoomType']?.toString() ??
+          booking['hotel']?['selectedRoomType']?.toString();
+
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedRoomType != null ? '$selectedRoomType per night:' : 'Price per night:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  'MYR ${pricePerNight.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${booking['numberOfNights']} night${booking['numberOfNights'] > 1 ? 's' : ''} × ${booking['numberOfRooms'] ?? 1} room${(booking['numberOfRooms'] ?? 1) > 1 ? 's' : ''}:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green[700],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(height: 12);
   }
 
   Widget _buildTransportBookingCard(Map<String, dynamic> booking) {
