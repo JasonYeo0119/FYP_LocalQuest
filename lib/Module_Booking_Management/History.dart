@@ -52,6 +52,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _filteredCompleted = [];
   bool _isLoading = true;
   TextEditingController _searchController = TextEditingController();
+  bool _isFerryBooking(Map<String, dynamic> booking) {
+    return booking['bookingType']?.toString().toLowerCase() == 'ferry' ||
+        booking['transportType']?.toString().toLowerCase() == 'ferry';
+  }
 
   late TabController _tabController;
 
@@ -246,6 +250,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     List<String> roomTypes = _getAllRoomTypes(booking);
     String roomTypesString = roomTypes.join(' ').toLowerCase();
 
+    // Ferry-specific search terms
+    String ferryTicketType = booking['ferryTicketType']?.toString().toLowerCase() ?? '';
+    String ferryPax = booking['ferryNumberOfPax']?.toString() ?? '';
+
     if (bookingType == 'hotel') {
       searchableName = booking['hotel']?['name']?.toString().toLowerCase() ?? '';
     } else if (bookingType == 'attraction') {
@@ -257,7 +265,9 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     return searchableName.contains(query) ||
         bookingId.contains(query) ||
         bookingType.contains(query) ||
-        roomTypesString.contains(query);
+        roomTypesString.contains(query) ||
+        ferryTicketType.contains(query) ||  // Add this line
+        ferryPax.contains(query);           // Add this line
   }
 
   bool _matchesFilter(Map<String, dynamic> booking) {
@@ -269,7 +279,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
       case 'Accommodation':
         return bookingType == 'hotel';
       case 'Transport':
-        return bookingType == 'transport' || bookingType == 'flight';
+        return bookingType == 'transport' ||
+            bookingType == 'flight' ||
+            bookingType == 'ferry' ||  // Add this line
+            _isFerryBooking(booking);  // Add this line
       case 'Attraction':
         return bookingType == 'attraction';
       default:
@@ -397,6 +410,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
           return _buildAttractionBookingCard(booking);
         } else if (bookingType == 'flight') {
           return _buildFlightBookingCard(booking);
+        } else if (bookingType == 'ferry' || _isFerryBooking(booking)) {
+          return _buildFerryBookingCard(booking);
         } else {
           return _buildTransportBookingCard(booking);
         }
@@ -990,7 +1005,263 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildPriceBreakdown(Map<String, dynamic> booking) {
+      Widget _buildFerryBookingCard(Map<String, dynamic> booking) {
+        return Card(
+          margin: EdgeInsets.only(bottom: 16),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with ferry name and status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_boat, size: 20, color: Color(0xFF0816A7)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              booking['transport']?['name'] ?? 'Ferry Service',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0816A7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(booking['status'] ?? 'pending').withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getStatusColor(booking['status'] ?? 'pending'),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        (booking['status'] ?? 'pending').toUpperCase(),
+                        style: TextStyle(
+                          color: _getStatusColor(booking['status'] ?? 'pending'),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.directions_boat, color: Colors.blue[700], size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${booking['transport']?['origin'] ?? 'Unknown'} → ${booking['transport']?['destination'] ?? 'Unknown'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+                if (booking['ferryNumberOfPax'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Passengers: ${booking['ferryNumberOfPax']}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                ],
+                if (booking['ferryTicketType'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.confirmation_number, size: 16, color: Colors.grey[600]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Ticket Type: ${booking['ferryTicketType'].toString().toUpperCase()}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                ],
+                if (booking['basePricePerPassenger'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Price per Passenger: MYR ${booking['basePricePerPassenger'].toStringAsFixed(2)}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                ],
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                    SizedBox(width: 8),
+                    Text(
+                      'Booked: ${_formatDate(booking['bookingDate'])} at ${_formatTime(booking['bookingDate'])}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                if (booking['departDate'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.sailing, size: 16, color: Colors.grey[600]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Travel Date: ${_formatDate(booking['departDate'])}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                ],
+
+                if (booking['selectedTime'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                      SizedBox(width: 8),
+                      Text(
+                        'Departure Time: ${booking['selectedTime']}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                ],
+
+                Row(
+                  children: [
+                    Icon(Icons.payment, size: 16, color: Colors.grey[600]),
+                    SizedBox(width: 8),
+                    Text(
+                      'Payment: ${booking['paymentMethod'] ?? 'N/A'}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+
+                // Price breakdown for ferry
+                if (booking['ferryNumberOfPax'] != null && booking['ferryNumberOfPax'] > 1) ...[
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Price Breakdown',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Price per passenger:',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                            Text(
+                              'MYR ${booking['pricePerPassenger']?.toStringAsFixed(2) ?? (booking['totalPrice'] / booking['ferryNumberOfPax']).toStringAsFixed(2)}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${booking['ferryNumberOfPax']} passenger${booking['ferryNumberOfPax'] > 1 ? 's' : ''}:',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                            Text(
+                              'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                ],
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      Text(
+                        'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0816A7),
+                        ),
+                      ),
+                    ]
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+    Widget _buildPriceBreakdown(Map<String, dynamic> booking) {
     // Check if we have multiple room types with detailed pricing
     if (booking['selectedRoomTypes'] != null && booking['selectedRoomTypes'] is List) {
       List<dynamic> selectedRoomTypes = booking['selectedRoomTypes'];

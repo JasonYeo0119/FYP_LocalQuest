@@ -48,7 +48,11 @@ class BookingPaymentPage extends StatefulWidget {
   final int? numberOfRooms;
   final int? numberOfNights;
 
-  // Updated room type parameters - now supports multiple room types
+  //Ferry
+  final String? ferryTicketType;
+  final int? ferryNumberOfPax;
+
+  // room type parameters - now supports multiple room types
   final List<Map<String, dynamic>>? selectedRoomTypes;
 
   // Common
@@ -74,8 +78,11 @@ class BookingPaymentPage extends StatefulWidget {
     this.numberOfGuests,
     this.numberOfRooms,
     this.numberOfNights,
-    // Updated room type parameters
+    // room type parameters
     this.selectedRoomTypes,
+    // Ferry
+    this.ferryTicketType,
+    this.ferryNumberOfPax,
     // Common
     required this.totalPrice,
   }) : super(key: key);
@@ -689,6 +696,12 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
   Widget _buildBookingSummaryCard() {
     Color primaryColor = _getPrimaryColor();
 
+    // Check if it's a ferry booking with multiple passengers
+    bool isFerryBookingWithMultiplePax = isTransportBooking &&
+        widget.transport?['type']?.toString().toLowerCase() == 'ferry' &&
+        widget.ferryNumberOfPax != null &&
+        widget.ferryNumberOfPax! > 1;
+
     return Card(
       elevation: 4,
       child: Padding(
@@ -726,7 +739,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Divider(),
             SizedBox(height: 12),
 
-            // Total Amount (updated for flights with additional costs)
+            // Total Amount (updated for flights and ferries with breakdown)
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -735,6 +748,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
               ),
               child: Column(
                 children: [
+                  // Show breakdown for flights with additional costs
                   if (isFlightBooking && _additionalCosts > 0) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -780,7 +794,55 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                       color: Colors.white.withOpacity(0.5),
                     ),
                     SizedBox(height: 8),
+                  ]
+                  // Show breakdown for ferry bookings with multiple passengers
+                  else if (isFerryBookingWithMultiplePax) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Price per Passenger:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'MYR ${(widget.totalPrice / widget.ferryNumberOfPax!).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Number of Passengers:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          '${widget.ferryNumberOfPax} pax',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      height: 1,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                    SizedBox(height: 8),
                   ],
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -793,7 +855,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                         ),
                       ),
                       Text(
-                        'MYR ${(isFlightBooking ? (widget.totalPrice * _passengers.length) + _additionalCosts : widget.totalPrice + _additionalCosts).toStringAsFixed(2)}',  // Updated calculation
+                        'MYR ${(isFlightBooking ? (widget.totalPrice * _passengers.length) + _additionalCosts : widget.totalPrice + _additionalCosts).toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -1108,6 +1170,13 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           _buildSummaryRow('Location:', widget.transport?['location']?.toString() ?? widget.transport?['origin']?.toString() ?? 'Unknown'),
           if (widget.numberOfDays != null)
             _buildSummaryRow('Duration:', '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}'),
+        ] else if (widget.transport?['type']?.toString().toLowerCase() == 'ferry') ...[
+          _buildSummaryRow('Route:', '${widget.transport?['origin']?.toString() ?? 'Unknown'} → ${widget.transport?['destination']?.toString() ?? 'Unknown'}'),
+          // Ferry-specific information
+          if (widget.ferryNumberOfPax != null)
+            _buildSummaryRow('Number of Passengers:', '${widget.ferryNumberOfPax}'),
+          if (widget.ferryTicketType != null)
+            _buildSummaryRow('Ticket Type:', widget.ferryTicketType!.toUpperCase()),
         ] else ...[
           _buildSummaryRow('Route:', '${widget.transport?['origin']?.toString() ?? 'Unknown'} → ${widget.transport?['destination']?.toString() ?? 'Unknown'}'),
         ],
@@ -1115,7 +1184,11 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
         // Date Information
         if (widget.departDate != null)
           _buildSummaryRow(
-            widget.transport?['type']?.toString().toLowerCase() == 'car' ? 'Booking Date:' : 'Departure Date:',
+            widget.transport?['type']?.toString().toLowerCase() == 'car'
+                ? 'Booking Date:'
+                : widget.transport?['type']?.toString().toLowerCase() == 'ferry'
+                ? 'Travel Date:'
+                : 'Departure Date:',
             '${widget.departDate!.day}/${widget.departDate!.month}/${widget.departDate!.year}',
           ),
         if (widget.returnDate != null)
@@ -1144,7 +1217,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             '${widget.selectedSeats!.length} seat${widget.selectedSeats!.length > 1 ? 's' : ''}',
             isSubtotal: true,
           ),
-        ] else if (widget.numberOfDays != null) ...[
+        ] else if (widget.numberOfDays != null && widget.transport?['type']?.toString().toLowerCase() == 'car') ...[
           _buildSummaryRow(
             'Price per Day:',
             'MYR ${(widget.transport?['price'] ?? 0.0).toStringAsFixed(2)}',
@@ -1153,6 +1226,17 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           _buildSummaryRow(
             'Duration:',
             '${widget.numberOfDays} day${widget.numberOfDays! > 1 ? 's' : ''}',
+            isSubtotal: true,
+          ),
+        ] else if (widget.transport?['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) ...[
+          _buildSummaryRow(
+            'Price per Passenger:',
+            'MYR ${(widget.transport?['price'] ?? 0.0).toStringAsFixed(2)}',
+            isSubtotal: true,
+          ),
+          _buildSummaryRow(
+            'Number of Passengers:',
+            '${widget.ferryNumberOfPax} passenger${widget.ferryNumberOfPax! > 1 ? 's' : ''}',
             isSubtotal: true,
           ),
         ],
@@ -1486,7 +1570,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                         labelText: 'MM/YY *',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.calendar_today),
-                        hintText: '12/25',
+                        hintText: '05/28',
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: [
@@ -1755,6 +1839,8 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           passengerData: passengerData,
           leadPassengerData: leadPassengerData,
           additionalCosts: isFlightBooking ? _additionalCosts : 0.0,
+          ferryNumberOfPax: widget.ferryNumberOfPax,
+          ferryTicketType: widget.ferryTicketType,
         )),
       );
 

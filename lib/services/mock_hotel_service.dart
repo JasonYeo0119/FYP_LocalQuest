@@ -1480,9 +1480,9 @@ class MockMalaysiaHotelService {
 
   static List<String> getPopularDestinations() {
     return [
-      'Kuala Lumpur', 'George Town', 'Langkawi', 'Johor Bahru',
-      'Kota Kinabalu', 'Melaka', 'Ipoh', 'Cameron Highlands',
-      'Kuching', 'Genting Highlands', 'Port Dickson'
+      'Kuala Lumpur', 'Penang', 'Langkawi', 'Kuching',
+      'Johor Bahru', 'Sabah', 'Melaka', 'Port Dickson', 'Cameron Highlands',
+      'Genting Highlands', 'Ipoh'
     ];
   }
 

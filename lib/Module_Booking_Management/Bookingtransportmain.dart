@@ -502,6 +502,218 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
     }
   }
 
+  Widget _buildTouristRecommendations(double screenWidth, double screenHeight) {
+    final recommendations = [
+      {
+        'title': 'KL-Penang Express Bus',
+        'subtitle': 'Comfortable 4-5 hour journey',
+        'price': 'RM 40.00 - 60.00',
+        'icon': Icons.directions_bus,
+        'popular': true,
+      },
+      {
+        'title': 'AirAsia Domestic',
+        'subtitle': 'Quick inter-state flights',
+        'price': 'RM 159.00',
+        'icon': Icons.flight,
+        'popular': false,
+      },
+      {
+        'title': 'Penang Ferry',
+        'subtitle': 'Iconic Butterworth-Georgetown',
+        'price': 'RM 2.00',
+        'icon': Icons.directions_boat,
+        'popular': true,
+      },
+      {
+        'title': 'Car Rental',
+        'subtitle': 'Explore Cameron Highlands',
+        'price': 'RM 80-160/day',
+        'icon': Icons.directions_car,
+        'popular': false,
+      },
+    ];
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.026),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+            child: Row(
+              children: [
+                Icon(Icons.star, color: Color(0xFF7107F3), size: screenWidth * 0.051),
+                SizedBox(width: screenWidth * 0.013),
+                Text(
+                  'Popular for Tourists',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.041,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.013),
+          Container(
+            height: screenHeight * 0.16,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+              itemCount: recommendations.length,
+              itemBuilder: (context, index) {
+                final rec = recommendations[index];
+                return Container(
+                  width: screenWidth * 0.42,
+                  margin: EdgeInsets.only(right: screenWidth * 0.026),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(screenWidth * 0.026),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(screenWidth * 0.015),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    rec['icon'] as IconData,
+                                    color: Colors.white,
+                                    size: screenWidth * 0.041,
+                                  ),
+                                ),
+                                Spacer(),
+                                if (rec['popular'] as bool)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * 0.013,
+                                      vertical: screenWidth * 0.005,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFFF02FA).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'HOT',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF02FA),
+                                        fontSize: screenWidth * 0.025,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(height: screenHeight * 0.01),
+                            Text(
+                              rec['title'] as String,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.033,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: screenHeight * 0.005),
+                            Text(
+                              rec['subtitle'] as String,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.028,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Spacer(),
+                            Text(
+                              'From ${rec['price']}',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.031,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF7107F3),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickTips(double screenWidth, double screenHeight) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.026,
+        vertical: screenHeight * 0.013,
+      ),
+      padding: EdgeInsets.all(screenWidth * 0.026),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF7107F3).withOpacity(0.1), Color(0xFFFF02FA).withOpacity(0.1)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFF7107F3).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lightbulb_outline, color: Color(0xFF7107F3)),
+          SizedBox(width: screenWidth * 0.026),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tourist Tip',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.033,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF7107F3),
+                  ),
+                ),
+                Text(
+                  'Get Touch \'n Go card for seamless travel across Malaysia',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.028,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void swapValues() {
     setState(() {
       String temp = originController.text;
@@ -1491,6 +1703,10 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
               child: Column(
                 children: [
                   _buildSearchForm(screenWidth, screenHeight),
+                  SizedBox(height: screenHeight * 0.02),
+                  _buildTouristRecommendations(screenWidth, screenHeight),
+                  SizedBox(height: screenHeight * 0.013),
+                  _buildQuickTips(screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.15), // Space for bottom navigation
                 ],
               ),

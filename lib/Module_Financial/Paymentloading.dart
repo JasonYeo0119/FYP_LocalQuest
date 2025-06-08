@@ -35,6 +35,8 @@ class Paymentloading extends StatefulWidget {
   final List<Map<String, dynamic>>? passengerData;
   final Map<String, dynamic>? leadPassengerData;
   final double additionalCosts;
+  final String? ferryTicketType;
+  final int? ferryNumberOfPax;
 
   const Paymentloading({
     Key? key,
@@ -61,6 +63,8 @@ class Paymentloading extends StatefulWidget {
     this.passengerData,
     this.leadPassengerData,
     this.additionalCosts = 0.0,
+    this.ferryTicketType,
+    this.ferryNumberOfPax,
   }) : super(key: key);
 
   @override
@@ -86,6 +90,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   bool get isAttractionBooking => widget.attraction != null;
   bool get isHotelBooking => widget.hotel != null;
   bool get isTransportBooking => widget.transport != null;
+  bool get isFerryBooking => widget.transport?['type']?.toString().toLowerCase() == 'ferry';
 
   // Method to generate random booking ID
   String _generateBookingId() {
@@ -209,7 +214,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             'visitDate': widget.visitDate?.toIso8601String(),
           });
         } else {
-          Map<String, dynamic> transportData = Map<String, dynamic>.from(widget.transport ?? {});
+          Map<String, dynamic> transportData = Map<String, dynamic>.from(
+              widget.transport ?? {});
           // Transport booking data
           bookingData.addAll({
             'transport': widget.transport,
@@ -235,9 +241,9 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               'leadPassengerData': widget.leadPassengerData,
               'numberOfPassengers': widget.passengerData?.length ?? 0,
               'additionalCosts': widget.additionalCosts,
-              'basePriceBeforeAddons': widget.totalPrice - widget.additionalCosts,
+              'basePriceBeforeAddons': widget.totalPrice -
+                  widget.additionalCosts,
             });
-
             // Calculate add-on summary for Firebase
             if (widget.passengerData != null) {
               int checkedBaggageCount = 0;
@@ -254,16 +260,29 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
                   // Calculate baggage cost based on weight
                   switch (passenger['checkedBaggageWeight']) {
-                    case '20kg': totalBaggageCost += 77.0; break;
-                    case '25kg': totalBaggageCost += 89.0; break;
-                    case '30kg': totalBaggageCost += 109.0; break;
-                    case '40kg': totalBaggageCost += 166.0; break;
-                    case '50kg': totalBaggageCost += 217.0; break;
-                    case '60kg': totalBaggageCost += 287.0; break;
+                    case '20kg':
+                      totalBaggageCost += 77.0;
+                      break;
+                    case '25kg':
+                      totalBaggageCost += 89.0;
+                      break;
+                    case '30kg':
+                      totalBaggageCost += 109.0;
+                      break;
+                    case '40kg':
+                      totalBaggageCost += 166.0;
+                      break;
+                    case '50kg':
+                      totalBaggageCost += 217.0;
+                      break;
+                    case '60kg':
+                      totalBaggageCost += 287.0;
+                      break;
                   }
                 }
 
-                if (passenger['selectedMeal'] != null && passenger['selectedMeal'] != 'None') {
+                if (passenger['selectedMeal'] != null &&
+                    passenger['selectedMeal'] != 'None') {
                   mealCount++;
                   selectedMeals.add(passenger['selectedMeal']);
                 }
@@ -278,13 +297,23 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
                 'totalMealCost': mealCount * 15.0, // Assuming meal price is 15
               });
             }
-            // Update booking type for flights
-            bookingData['bookingType'] = 'flight';
-            bookingData['transportType'] = 'flight';
+          } else if (isFerryBooking) {
+            // Ferry-specific data
+            bookingData.addAll({
+              'ferryTicketType': widget.ferryTicketType,
+              'ferryNumberOfPax': widget.ferryNumberOfPax,
+              'numberOfPassengers': widget.ferryNumberOfPax,
+              // Store passenger count explicitly
+              'route': '${transportData['origin']} → ${transportData['destination']}',
+              // Store base price from transport data for reference
+              'basePricePerPassenger': transportData['price'] ?? 0.0,
+              'totalCalculatedPrice': widget.totalPrice,
+            });
 
-
+            // Set booking type for ferry
+            bookingData['bookingType'] = 'ferry';
+            bookingData['transportType'] = 'ferry';
           }
-
         }
 
         // Save to user's bookings using the custom booking ID as key
@@ -321,6 +350,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     if (isHotelBooking) return 'hotel';
     if (isAttractionBooking) return 'attraction';
     if (isFlightBooking) return 'flight';
+    if (isFerryBooking) return 'ferry';
     return 'transport';
   }
 
@@ -328,6 +358,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     if (isHotelBooking) return 'hotel_bookings';
     if (isAttractionBooking) return 'attraction_bookings';
     if (isFlightBooking) return 'flight_bookings';
+    if (isFerryBooking) return 'ferry_bookings';
     return 'transport_bookings';
   }
 
@@ -643,28 +674,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             // Animated dots to indicate processing
             SizedBox(height: 10),
             _buildAnimatedDots(),
-
-            // Show total amount
-            SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: _getGradientColors(),
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Text(
-                "Total: MYR ${widget.totalPrice.toStringAsFixed(2)}",
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
 
             // Show number of rooms and nights for hotel bookings
             if (isHotelBooking && widget.numberOfRooms != null && widget.numberOfNights != null) ...[

@@ -175,43 +175,76 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
     );
   }
 
-  Widget _buildPopularDestinations(double screenWidth) {
+  Widget _buildPopularDestinations(double screenWidth, double screenHeight) {
     final destinations = MockMalaysiaHotelService.getPopularDestinations();
 
     return Container(
-      margin: EdgeInsets.only(
-          top: screenWidth * 0.01, // Responsive top margin
-          left: screenWidth * 0.026,
-          right: screenWidth * 0.026
-      ),
-      padding: EdgeInsets.all(screenWidth * 0.041),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.deepOrange, width: 1),
-      ),
+      margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.026),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Popular Destinations in Malaysia',
-            style: TextStyle(
-                fontSize: screenWidth * 0.041,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, color: Color(0xFFFF4502), size: screenWidth * 0.051),
+                SizedBox(width: screenWidth * 0.013),
+                Text(
+                  'Popular Destinations',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.041,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: destinations.map((destination) {
-              return ActionChip(
-                label: Text(destination),
-                onPressed: () => _onDestinationTap(destination),
-                backgroundColor: Colors.deepOrange.withOpacity(0.1),
-              );
-            }).toList(),
+          SizedBox(height: screenHeight * 0.013),
+          Container(
+            padding: EdgeInsets.all(screenWidth * 0.026),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Color(0xFFFF4502).withOpacity(0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Wrap(
+              spacing: screenWidth * 0.021,
+              runSpacing: screenHeight * 0.010,
+              children: destinations.map((destination) {
+                return GestureDetector(
+                  onTap: () => _onDestinationTap(destination),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.026,
+                      vertical: screenHeight * 0.008,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFFF4502).withOpacity(0.1), Color(0xFFFFFF00).withOpacity(0.1)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Color(0xFFFF4502).withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      destination,
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.030,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFFFF4502),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -480,6 +513,183 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
     );
   }
 
+  Widget _buildFeaturedHotels(double screenWidth, double screenHeight) {
+    final featuredHotels = [
+      {
+        'title': 'Petronas Tower View',
+        'location': 'Kuala Lumpur',
+        'type': 'Luxury City Hotels',
+        'price': 'RM 250-450',
+        'icon': Icons.location_city,
+        'featured': true,
+      },
+      {
+        'title': 'Penang Heritage',
+        'location': 'Georgetown',
+        'type': 'Boutique Hotels',
+        'price': 'RM 120-280',
+        'icon': Icons.account_balance,
+        'featured': true,
+      },
+      {
+        'title': 'Langkawi Resorts',
+        'location': 'Langkawi',
+        'type': 'Beach Resorts',
+        'price': 'RM 180-350',
+        'icon': Icons.beach_access,
+        'featured': false,
+      },
+      {
+        'title': 'Cameron Highlands',
+        'location': 'Pahang',
+        'type': 'Mountain Retreats',
+        'price': 'RM 90-200',
+        'icon': Icons.landscape,
+        'featured': false,
+      },
+    ];
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.026),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+            child: Row(
+              children: [
+                Icon(Icons.star, color: Color(0xFFFF4502), size: screenWidth * 0.051),
+                SizedBox(width: screenWidth * 0.013),
+                Text(
+                  'Featured Accommodations',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.041,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.013),
+          Container(
+            height: screenHeight * 0.16,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+              itemCount: featuredHotels.length,
+              itemBuilder: (context, index) {
+                final hotel = featuredHotels[index];
+                return Container(
+                  width: screenWidth * 0.42,
+                  margin: EdgeInsets.only(right: screenWidth * 0.026),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(screenWidth * 0.026),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(screenWidth * 0.015),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    hotel['icon'] as IconData,
+                                    color: Colors.white,
+                                    size: screenWidth * 0.041,
+                                  ),
+                                ),
+                                Spacer(),
+                                if (hotel['featured'] as bool)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * 0.013,
+                                      vertical: screenWidth * 0.005,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFFF4502).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'TOP',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF4502),
+                                        fontSize: screenWidth * 0.025,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(height: screenHeight * 0.01),
+                            Text(
+                              hotel['title'] as String,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.033,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: screenHeight * 0.005),
+                            Text(
+                              hotel['location'] as String,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.028,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * 0.003),
+                            Text(
+                              hotel['type'] as String,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.026,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                            Spacer(),
+                            Text(
+                              'From ${hotel['price']}/night',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.030,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFFF4502),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomNavigation(double screenWidth, double screenHeight) {
     double iconSize = screenWidth * 0.18;
     double iconButtonSize = screenWidth * 0.103;
@@ -659,8 +869,9 @@ class _BookinghotelmainState extends State<Bookinghotelmain> {
               child: Column(
                 children: [
                   _buildSearchForm(screenWidth, screenHeight),
-                  _buildPopularDestinations(screenWidth),
-                  SizedBox(height: screenHeight * 0.15), // Space for bottom navigation
+                  _buildFeaturedHotels(screenWidth, screenHeight),
+                  SizedBox(height: screenHeight * 0.015),
+                  _buildPopularDestinations(screenWidth, screenHeight),
                 ],
               ),
             ),

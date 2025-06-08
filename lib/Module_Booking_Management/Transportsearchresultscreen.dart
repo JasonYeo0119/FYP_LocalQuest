@@ -446,6 +446,7 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
                     departDate: widget.departDate,
                     returnDate: widget.returnDate,
                     numberOfDays: widget.numberOfDays,
+                    ferryNumberOfPax: widget.ferryNumberOfPax,
                   );
                 },
               ),

@@ -10,6 +10,8 @@ class TransportCard extends StatefulWidget {
   final DateTime? departDate;
   final DateTime? returnDate;
   final int? numberOfDays;
+  final int? ferryNumberOfPax;
+  final String? ferryTicketType;
 
   const TransportCard({
     Key? key,
@@ -17,6 +19,8 @@ class TransportCard extends StatefulWidget {
     this.departDate,
     this.returnDate,
     this.numberOfDays,
+    this.ferryNumberOfPax,
+    this.ferryTicketType,
   }) : super(key: key);
 
   @override
@@ -48,6 +52,9 @@ class _TransportCardState extends State<TransportCard> {
     // Calculate total price based on transport type
     if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) {
       totalPrice = basePrice * widget.numberOfDays!;
+    } else if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) {
+      // Add ferry passenger calculation
+      totalPrice = basePrice * widget.ferryNumberOfPax!;
     } else {
       totalPrice = basePrice * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
     }
@@ -447,6 +454,47 @@ class _TransportCardState extends State<TransportCard> {
                   SizedBox(height: 16),
                 ],
 
+                // Ferry summary
+                if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) ...[
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.deepPurple[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ferry Booking Summary:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple[800],
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Passengers: ${widget.ferryNumberOfPax}',
+                          style: TextStyle(color: Colors.deepPurple[700]),
+                        ),
+                        Text(
+                          'Price per passenger: MYR ${(widget.transport['price'] ?? 0.0).toStringAsFixed(2)}',
+                          style: TextStyle(color: Colors.deepPurple[700]),
+                        ),
+                        Text(
+                          'Total Price: MYR ${totalPrice.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+
                 // Description
                 if (widget.transport['description'] != null &&
                     widget.transport['description'].toString().isNotEmpty) ...[
@@ -560,6 +608,12 @@ class _TransportCardState extends State<TransportCard> {
       return 'Book Now - MYR ${totalPrice.toStringAsFixed(2)}';
     }
 
+    // For ferries
+    if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) {
+      double totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * widget.ferryNumberOfPax!;
+      return 'Book Now - MYR ${totalPrice.toStringAsFixed(2)}';
+    }
+
     if (timeSlots.isNotEmpty && selectedTime == null) {
       return 'Select Time First';
     }
@@ -597,6 +651,10 @@ class _TransportCardState extends State<TransportCard> {
     // Calculate total price based on transport type
     if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) {
       totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * widget.numberOfDays!;
+    } else if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) {
+      double basePrice = (widget.transport['price'] ?? 0.0).toDouble();
+      totalPrice = basePrice * widget.ferryNumberOfPax!;
+
     } else {
       totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
     }
@@ -612,6 +670,8 @@ class _TransportCardState extends State<TransportCard> {
           departDate: widget.departDate,
           returnDate: widget.returnDate,
           numberOfDays: widget.numberOfDays,
+          ferryNumberOfPax: widget.ferryNumberOfPax,
+          ferryTicketType: widget.ferryTicketType,
         ),
       ),
     );
