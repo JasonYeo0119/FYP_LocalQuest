@@ -263,6 +263,45 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               SizedBox(height: 18),
+
+              // Itinerary Tab
+              GestureDetector(
+                onTap: () => _navigateToDeals(),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(17),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x3F000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'View Itinerary',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF0816A7),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 18),
             ],
           ),
         ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../Model/hotel.dart';
 
-class HotelCard extends StatelessWidget {
+class HotelCard extends StatefulWidget {
   final Hotel hotel;
   final VoidCallback onTap;
 
@@ -12,6 +14,102 @@ class HotelCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  _HotelCardState createState() => _HotelCardState();
+}
+
+class _HotelCardState extends State<HotelCard> {
+  bool isFavorite = false;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteStatus();
+  }
+
+  void _loadFavoriteStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favoriteRef = FirebaseDatabase.instance
+        .ref()
+        .child('users')
+        .child(user.uid)
+        .child('hotel_favorites')
+        .child(widget.hotel.id.toString());
+
+    favoriteRef.onValue.listen((event) {
+      if (mounted) {
+        setState(() {
+          isFavorite = event.snapshot.value != null;
+        });
+      }
+    });
+  }
+
+  void _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please sign in to save hotels')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    final hotelFavoriteRef = FirebaseDatabase.instance
+        .ref()
+        .child('users')
+        .child(user.uid)
+        .child('hotel_favorites')
+        .child(widget.hotel.id.toString());
+
+    try {
+      final snapshot = await hotelFavoriteRef.once();
+
+      if (snapshot.snapshot.value != null) {
+        // Remove from favorites
+        await hotelFavoriteRef.remove();
+        setState(() {
+          isFavorite = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hotel removed from favorites')),
+        );
+      } else {
+        // Add to favorites
+        await hotelFavoriteRef.set({
+          'id': widget.hotel.id,
+          'name': widget.hotel.name,
+          'city': widget.hotel.city,
+          'country': widget.hotel.country,
+          'imageUrl': widget.hotel.imageUrl,
+          'rating': widget.hotel.rating,
+          'type': widget.hotel.type,
+          'timestamp': ServerValue.timestamp,
+        });
+        setState(() {
+          isFavorite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hotel added to favorites')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 3,
@@ -20,7 +118,7 @@ class HotelCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +156,7 @@ class HotelCard extends StatelessWidget {
       child: Stack(
         children: [
           Image.network(
-            hotel.imageUrl,
+            widget.hotel.imageUrl,
             height: 160,
             width: double.infinity,
             fit: BoxFit.cover,
@@ -100,7 +198,7 @@ class HotelCard extends StatelessWidget {
                   Icon(Icons.star, color: Colors.yellow, size: 14),
                   SizedBox(width: 2),
                   Text(
-                    hotel.rating.toString(),
+                    widget.hotel.rating.toString(),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -121,11 +219,47 @@ class HotelCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                hotel.type,
+                widget.hotel.type,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          // Add favorite button
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: _toggleFavorite,
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isLoading
+                    ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                  ),
+                )
+                    : Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.red,
+                  size: 20,
                 ),
               ),
             ),
@@ -141,7 +275,7 @@ class HotelCard extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            hotel.name,
+            widget.hotel.name,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -158,8 +292,8 @@ class HotelCard extends StatelessWidget {
   }
 
   Widget _buildRatingBadge() {
-    Color ratingColor = _getRatingColor(hotel.rating);
-    String ratingText = _getRatingText(hotel.rating);
+    Color ratingColor = _getRatingColor(widget.hotel.rating);
+    String ratingText = _getRatingText(widget.hotel.rating);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -185,7 +319,7 @@ class HotelCard extends StatelessWidget {
         SizedBox(width: 4),
         Expanded(
           child: Text(
-            '${hotel.city}, ${hotel.country}',
+            '${widget.hotel.city}, ${widget.hotel.country}',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
@@ -200,8 +334,8 @@ class HotelCard extends StatelessWidget {
 
   Widget _buildAmenities() {
     // Show only first 3 amenities to save space
-    List<String> displayAmenities = hotel.amenities.take(3).toList();
-    int remainingCount = hotel.amenities.length - displayAmenities.length;
+    List<String> displayAmenities = widget.hotel.amenities.take(3).toList();
+    int remainingCount = widget.hotel.amenities.length - displayAmenities.length;
 
     return Wrap(
       spacing: 4,
@@ -247,7 +381,7 @@ class HotelCard extends StatelessWidget {
   }
 
   Widget _buildRoomInfo() {
-    if (hotel.roomTypes == null || hotel.roomTypes!.isEmpty) {
+    if (widget.hotel.roomTypes == null || widget.hotel.roomTypes!.isEmpty) {
       return Container(
         padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -272,8 +406,8 @@ class HotelCard extends StatelessWidget {
       );
     }
 
-    int totalRooms = hotel.getTotalRoomCount();
-    int roomTypeCount = hotel.roomTypes!.length;
+    int totalRooms = widget.hotel.getTotalRoomCount();
+    int roomTypeCount = widget.hotel.roomTypes!.length;
 
     return Container(
       padding: EdgeInsets.all(8),
@@ -308,7 +442,7 @@ class HotelCard extends StatelessWidget {
               ],
             ),
           ),
-          if (hotel.hasMultipleRoomTypes())
+          if (widget.hotel.hasMultipleRoomTypes())
             Container(
               padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
@@ -345,7 +479,7 @@ class HotelCard extends StatelessWidget {
               ),
             ),
             Text(
-              hotel.getPriceRange(),
+              widget.hotel.getPriceRange(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -362,7 +496,7 @@ class HotelCard extends StatelessWidget {
           ],
         ),
         ElevatedButton(
-          onPressed: onTap,
+          onPressed: widget.onTap,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -1408,22 +1408,18 @@ class MockMalaysiaHotelService {
         }
       ]
     }
-
-    // Continue pattern for remaining 98 properties...
-    // Each property follows similar structure with 2-6 room types,
-    // different prices, quantities, and descriptions
   ];
 
   static Future<List<Hotel>> searchHotels({String? destination, String? type, double? minPrice, double? maxPrice}) async {
-    // Simulate network delay
-    await Future.delayed(Duration(milliseconds: 1500));
+        // Simulate network delay
+        await Future.delayed(Duration(milliseconds: 1500));
 
-    List<Map<String, dynamic>> filteredHotels = _mockHotels;
+        List<Map<String, dynamic>> filteredHotels = _mockHotels;
 
-    if (destination != null && destination.isNotEmpty) {
-      String searchTerm = destination.toLowerCase();
-      filteredHotels = filteredHotels.where((hotel) {
-        return hotel['city'].toString().toLowerCase().contains(searchTerm) ||
+        if (destination != null && destination.isNotEmpty) {
+          String searchTerm = destination.toLowerCase();
+          filteredHotels = filteredHotels.where((hotel) {
+            return hotel['city'].toString().toLowerCase().contains(searchTerm) ||
             hotel['country'].toString().toLowerCase().contains(searchTerm) ||
             hotel['name'].toString().toLowerCase().contains(searchTerm);
       }).toList();
@@ -1457,6 +1453,26 @@ class MockMalaysiaHotelService {
     try {
       final hotelData = _mockHotels.firstWhere((hotel) => hotel['id'] == id);
       return Hotel.fromJson(hotelData);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllHotels() async {
+    // Simulate network delay
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Return a copy of the mock hotels data
+    return List<Map<String, dynamic>>.from(_mockHotels);
+  }
+
+// Also add this method to get hotel data by ID as Map
+  static Future<Map<String, dynamic>?> getHotelDataById(int id) async {
+    await Future.delayed(Duration(milliseconds: 300));
+
+    try {
+      final hotelData = _mockHotels.firstWhere((hotel) => hotel['id'] == id);
+      return Map<String, dynamic>.from(hotelData);
     } catch (e) {
       return null;
     }
