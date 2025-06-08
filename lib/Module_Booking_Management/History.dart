@@ -269,7 +269,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
       case 'Accommodation':
         return bookingType == 'hotel';
       case 'Transport':
-        return bookingType == 'transport';
+        return bookingType == 'transport' || bookingType == 'flight';
       case 'Attraction':
         return bookingType == 'attraction';
       default:
@@ -395,6 +395,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
           return _buildHotelBookingCard(booking);
         } else if (bookingType == 'attraction') {
           return _buildAttractionBookingCard(booking);
+        } else if (bookingType == 'flight') {
+          return _buildFlightBookingCard(booking);
         } else {
           return _buildTransportBookingCard(booking);
         }
@@ -1461,6 +1463,421 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
             ),
           ],
         ),
+      ),
+    );
+  }
+  Widget _buildFlightBookingCard(Map<String, dynamic> booking) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with flight info and status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.flight, size: 20, color: Color(0xFF7107F3)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${booking['airline'] ?? 'Unknown Airline'} ${booking['flightNumber'] ?? ''}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF7107F3),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(booking['status'] ?? 'pending').withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    (booking['status'] ?? 'pending').toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(booking['status'] ?? 'pending'),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Flight route
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.flight_takeoff, color: Colors.purple[700], size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      booking['route'] ?? '${booking['transport']?['origin'] ?? 'Unknown'} → ${booking['transport']?['destination'] ?? 'Unknown'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+
+            // Flight details
+            if (booking['aircraft'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.airplanemode_active, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Aircraft: ${booking['aircraft']}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            if (booking['selectedClass'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.airline_seat_recline_normal, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Class: ${booking['selectedClass']}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            if (booking['departureTime'] != null && booking['arrivalTime'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Flight Time: ${booking['departureTime']} - ${booking['arrivalTime']}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            if (booking['duration'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Duration: ${booking['duration']}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Detailed Passenger Information
+            // Detailed Passenger Information
+            if (booking['passengerData'] != null) ...[
+              Container(
+                padding: EdgeInsets.all(12),
+                margin: EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.people, size: 16, color: Colors.blue[700]),
+                        SizedBox(width: 8),
+                        Text(
+                          'Passenger Details',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    // Convert passenger data to proper format
+                    ...(() {
+                      var passengerData = booking['passengerData'];
+                      List<Widget> passengerWidgets = [];
+
+                      if (passengerData is List) {
+                        // If it's already a List
+                        for (int index = 0; index < passengerData.length; index++) {
+                          var passenger = passengerData[index];
+                          if (passenger is Map) {
+                            passengerWidgets.add(_buildPassengerCard(index, Map<String, dynamic>.from(passenger)));
+                          }
+                        }
+                      } else if (passengerData is Map) {
+                        // If it's a Map (Firebase format), convert to List
+                        var passengerMap = Map<String, dynamic>.from(passengerData);
+                        var sortedKeys = passengerMap.keys.toList()..sort();
+
+                        for (int i = 0; i < sortedKeys.length; i++) {
+                          var key = sortedKeys[i];
+                          var passenger = passengerMap[key];
+                          if (passenger is Map) {
+                            passengerWidgets.add(_buildPassengerCard(i, Map<String, dynamic>.from(passenger)));
+                          }
+                        }
+                      }
+
+                      return passengerWidgets;
+                    })(),
+                  ],
+                ),
+              ),
+            ] else if (booking['numberOfPassengers'] != null) ...[
+              // Fallback for bookings without detailed passenger data
+              Row(
+                children: [
+                  Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Passengers: ${booking['numberOfPassengers']}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Add-ons summary (keep as backup)
+            if (booking['checkedBaggageCount'] != null && booking['checkedBaggageCount'] > 0) ...[
+              Row(
+                children: [
+                  Icon(Icons.luggage, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Total Checked Baggage: ${booking['checkedBaggageCount']} (MYR ${booking['totalBaggageCost']?.toStringAsFixed(0) ?? '0'})',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            if (booking['mealCount'] != null && booking['mealCount'] > 0) ...[
+              Row(
+                children: [
+                  Icon(Icons.restaurant, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Total Meals: ${booking['mealCount']} (MYR ${booking['totalMealCost']?.toStringAsFixed(0) ?? '0'})',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Booking details
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Booked: ${_formatDate(booking['bookingDate'])} at ${_formatTime(booking['bookingDate'])}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+
+            if (booking['departDate'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.flight_takeoff, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Text(
+                    'Departure: ${_formatDate(booking['departDate'])}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+
+            // Payment info
+            Row(
+              children: [
+                Icon(Icons.payment, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Payment: ${booking['paymentMethod'] ?? 'N/A'}',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Price breakdown for flights with add-ons
+            if (booking['additionalCosts'] != null && booking['additionalCosts'] > 0) ...[
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Price Breakdown',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Base Price:',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                        Text(
+                          'MYR ${booking['basePriceBeforeAddons']?.toStringAsFixed(2) ?? '0.00'}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Add-ons:',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                        Text(
+                          'MYR ${booking['additionalCosts']?.toStringAsFixed(2) ?? '0.00'}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
+
+            // Total price and booking ID
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                Text(
+                  'MYR ${booking['totalPrice']?.toStringAsFixed(2) ?? '0.00'}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF7107F3),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildPassengerCard(int index, Map<String, dynamic> passenger) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Passenger ${index + 1}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[700],
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Name: ${passenger['givenName'] ?? ''} ${passenger['surname'] ?? ''}',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'Checked baggage: ${passenger['checkedBaggageWeight'] != null ? passenger['checkedBaggageWeight'] : 'No'}',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'Meal: ${passenger['selectedMeal'] != null && passenger['selectedMeal'] != 'None' ? 'Yes' : 'No'}',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
       ),
     );
   }

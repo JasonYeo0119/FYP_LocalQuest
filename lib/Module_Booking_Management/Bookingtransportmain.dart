@@ -49,6 +49,13 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
   TextEditingController _ferryOriginController = TextEditingController();
   TextEditingController _ferryDestinationController = TextEditingController();
 
+  TextEditingController _flightDepartController = TextEditingController();
+  TextEditingController _flightReturnController = TextEditingController();
+  TextEditingController _flightOriginController = TextEditingController();
+  TextEditingController _flightDestinationController = TextEditingController();
+
+  DateTime? _flightDepartDate;
+  DateTime? _flightReturnDate;
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
   DateTime? _bookingDate;
@@ -60,6 +67,11 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
   int _numberOfPax = 1;
   List<String> _ferryOrigins = ["Butterworth", "George Town"];
   List<String> _ferryDestinations = ["Butterworth", "George Town"];
+  List<String> _flightLocations = [
+    'Kuala Lumpur International Airport(KUL)', 'Johor Bahru Senai International Airport (JHB)', 'Penang International Airport (PEN)', 'Kota Kinabalu International Airport (BKI)',
+    'Sadakan Airport (SDK)', 'Tawau Airport (TWU)', 'Sibu Airport (SBW)', 'Kuching International Airport (KCH)'
+  ];
+
 
   // Tab controller for transport types
   late TabController _tabController;
@@ -170,6 +182,13 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
     _ferryDate = null;
     _selectedTicketType = 'pedestrian';
     _numberOfPax = 1;
+
+    _flightDepartController.clear();
+    _flightReturnController.clear();
+    _flightOriginController.clear();
+    _flightDestinationController.clear();
+    _flightDepartDate = null;
+    _flightReturnDate = null;
   }
 
   @override
@@ -177,6 +196,8 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
     _tabController.dispose();
     super.dispose();
   }
+
+  // In your Bookingtransportmain.dart file, update the _searchTransports method:
 
   Future<void> _searchTransports() async {
     // Validate form based on transport type
@@ -223,8 +244,36 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
         );
         return;
       }
+    } else if (_selectedTransport == 'Flight') {
+      // Flight validation
+      if (_flightOriginController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select departure location")),
+        );
+        return;
+      }
+
+      if (_flightDestinationController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select arrival location")),
+        );
+        return;
+      }
+
+      if (_flightOriginController.text == _flightDestinationController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Departure and arrival locations cannot be the same")),
+        );
+        return;
+      }
+
+      if (_flightDepartDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select departure date")),
+        );
+        return;
+      }
     } else {
-      // Validation for other transport types (Bus, Flight)
       if (originController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Please enter origin location")),
@@ -247,19 +296,38 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
       }
     }
 
+    // Extract airport codes for flight search
+    String origin = '';
+    String destination = '';
+
+    if (_selectedTransport == 'Flight') {
+      // Extract airport codes from the selected locations
+      origin = _extractAirportCode(_flightOriginController.text);
+      destination = _extractAirportCode(_flightDestinationController.text);
+    } else if (_selectedTransport == 'Car') {
+      origin = _carLocationController.text;
+      destination = _carLocationController.text;
+    } else if (_selectedTransport == 'Ferry') {
+      origin = _ferryOriginController.text;
+      destination = _ferryDestinationController.text;
+    } else {
+      origin = originController.text;
+      destination = destinationController.text;
+    }
+
     // Navigate to search results page - let it handle the data fetching
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TransportSearchResultsScreen(
           transports: [], // Empty list - results screen will fetch data
-          origin: _selectedTransport == 'Car' ? _carLocationController.text :
-          _selectedTransport == 'Ferry' ? _ferryOriginController.text : originController.text,
-          destination: _selectedTransport == 'Car' ? _carLocationController.text :
-          _selectedTransport == 'Ferry' ? _ferryDestinationController.text : destinationController.text,
+          origin: origin,
+          destination: destination,
           departDate: _selectedTransport == 'Car' ? _bookingDate! :
-          _selectedTransport == 'Ferry' ? _ferryDate! : _checkInDate!,
-          returnDate: _selectedTransport == 'Car' || _selectedTransport == 'Ferry' ? null : _checkOutDate,
+          _selectedTransport == 'Ferry' ? _ferryDate! :
+          _selectedTransport == 'Flight' ? _flightDepartDate! : _checkInDate!,
+          returnDate: _selectedTransport == 'Car' || _selectedTransport == 'Ferry' ? null :
+          _selectedTransport == 'Flight' ? _flightReturnDate : _checkOutDate,
           transportType: _selectedTransport,
           // Pass car-specific parameters
           carLocation: _selectedTransport == 'Car' ? _carLocationController.text : null,
@@ -270,6 +338,15 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
         ),
       ),
     );
+  }
+
+// Add this helper method to extract airport codes
+  String _extractAirportCode(String location) {
+    // Extract airport code from location string
+    // Example: "Kuala Lumpur International Airport(KUL)" -> "KUL"
+    final RegExp regExp = RegExp(r'\(([A-Z]+)\)');
+    final match = regExp.firstMatch(location);
+    return match?.group(1) ?? location;
   }
 
   Future<List<Transport>> _fetchCarInformation() async {
@@ -485,6 +562,221 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
         dividerColor: Colors.transparent,
         labelPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.01),
       ),
+    );
+  }
+
+  Future<void> _selectFlightDepartDate(BuildContext context) async {
+    DateTime today = DateTime.now();
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: today,
+      firstDate: today,
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _flightDepartDate = pickedDate;
+        _flightDepartController.text =
+        "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+
+        // Reset return date if it's now before depart date
+        if (_flightReturnDate != null && _flightReturnDate!.isBefore(_flightDepartDate!)) {
+          _flightReturnController.clear();
+          _flightReturnDate = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _selectFlightReturnDate(BuildContext context) async {
+    DateTime initialDate = _flightDepartDate?.add(Duration(days: 1)) ?? DateTime.now();
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: _flightDepartDate ?? DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      if (_flightDepartDate != null && pickedDate.isBefore(_flightDepartDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Return date must be after depart date.")),
+        );
+      } else {
+        setState(() {
+          _flightReturnDate = pickedDate;
+          _flightReturnController.text =
+          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+        });
+      }
+    }
+  }
+
+  void swapFlightValues() {
+    setState(() {
+      String temp = _flightOriginController.text;
+      _flightOriginController.text = _flightDestinationController.text;
+      _flightDestinationController.text = temp;
+    });
+  }
+
+  Widget _buildFlightForm(double screenWidth, double screenHeight) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: screenHeight * 0.045,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: _flightDepartController,
+                  readOnly: true,
+                  onTap: () => _selectFlightDepartDate(context),
+                  decoration: InputDecoration(
+                    hintText: 'Depart date',
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                  textAlignVertical: TextAlignVertical.center,
+                ),
+              ),
+            ),
+            SizedBox(width: screenWidth * 0.026),
+            Expanded(
+              child: Container(
+                height: screenHeight * 0.045,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: _flightReturnController,
+                  readOnly: true,
+                  onTap: () => _selectFlightReturnDate(context),
+                  decoration: InputDecoration(
+                    hintText: 'Return date (Optional)',
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                  textAlignVertical: TextAlignVertical.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: screenHeight * 0.015),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: screenHeight * 0.045,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                alignment: Alignment.center,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _flightOriginController.text.isEmpty ? null : _flightOriginController.text,
+                    hint: Text('Depart from', style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.grey)),
+                    isExpanded: true,
+                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    dropdownColor: Colors.white,
+                    items: _flightLocations.map((String location) {
+                      return DropdownMenuItem<String>(
+                        value: location,
+                        child: Text(location),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _flightOriginController.text = newValue ?? '';
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              width: screenWidth * 0.103,
+              height: screenWidth * 0.103,
+              margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.013),
+              decoration: ShapeDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(1.00, 0.00),
+                  end: Alignment(-1, 0),
+                  colors: [Color(0xFF7107F3), Color(0xFFFF02FA)],
+                ),
+                shape: OvalBorder(side: BorderSide(width: 1)),
+                shadows: [
+                  BoxShadow(
+                    color: Color(0x3F000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(Icons.swap_horiz, color: Colors.white),
+                iconSize: screenWidth * 0.051,
+                onPressed: swapFlightValues,
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: screenHeight * 0.045,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+                alignment: Alignment.center,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _flightDestinationController.text.isEmpty ? null : _flightDestinationController.text,
+                    hint: Text('Arrive at', style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.grey)),
+                    isExpanded: true,
+                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    dropdownColor: Colors.white,
+                    items: _flightLocations.map((String location) {
+                      return DropdownMenuItem<String>(
+                        value: location,
+                        child: Text(location),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _flightDestinationController.text = newValue ?? '';
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -941,8 +1233,10 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
             _buildCarForm(screenWidth, screenHeight)
           else if (isFerrySelected)
             _buildFerryForm(screenWidth, screenHeight)
-          else
-            _buildOtherTransportForm(screenWidth, screenHeight),
+          else if (_selectedTransport == 'Flight')
+              _buildFlightForm(screenWidth, screenHeight)
+            else
+              _buildOtherTransportForm(screenWidth, screenHeight),
           SizedBox(height: screenHeight * 0.025),
           Center(
             child: GestureDetector(

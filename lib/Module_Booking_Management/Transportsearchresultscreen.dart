@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../Model/transport.dart';
+import '../Model/flight.dart';
 import '../widgets/transport_card.dart';
+import '../widgets/flight_card.dart'; // You'll need to create this
 import '../services/transport_service.dart';
+import '../services/mock_flight_service.dart';
 
 class TransportSearchResultsScreen extends StatefulWidget {
   final List<Transport> transports; // May be empty - we'll fetch data here
@@ -14,7 +17,6 @@ class TransportSearchResultsScreen extends StatefulWidget {
   final int? numberOfDays;
   final String? ferryTicketType;
   final int? ferryNumberOfPax;
-
 
   const TransportSearchResultsScreen({
     Key? key,
@@ -36,6 +38,7 @@ class TransportSearchResultsScreen extends StatefulWidget {
 
 class _TransportSearchResultsScreenState extends State<TransportSearchResultsScreen> {
   List<Transport> _searchResults = [];
+  List<Flight> _flightResults = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -52,28 +55,69 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
     });
 
     try {
-      List<Transport> results;
-
-      if (widget.transportType == 'Car') {
-        results = await _fetchCarInformation();
+      if (widget.transportType == 'Flight') {
+        await _fetchFlightInformation();
+      } else if (widget.transportType == 'Car') {
+        List<Transport> results = await _fetchCarInformation();
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
       } else {
-        results = await TransportService.searchTransports(
+        List<Transport> results = await TransportService.searchTransports(
           origin: widget.origin,
           destination: widget.destination,
           type: widget.transportType,
         );
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load transport data. Please try again.';
         _isLoading = false;
       });
       print('Error fetching transport data: $e');
+    }
+  }
+
+  Future<void> _fetchFlightInformation() async {
+    try {
+      print('Fetching flight information...');
+      print('Origin: ${widget.origin}');
+      print('Destination: ${widget.destination}');
+      print('Depart Date: ${widget.departDate}');
+      print('Return Date: ${widget.returnDate}');
+
+      // Search flights using the mock service
+      // The origin and destination should already be airport codes (e.g., "KUL", "PEN")
+      List<Flight> availableFlights = await MockMalaysiaFlightService.searchFlights(
+        from: widget.origin,
+        to: widget.destination,
+      );
+
+      print('Found ${availableFlights.length} flights');
+
+      // Filter flights based on operating days if needed
+      List<Flight> filteredFlights = availableFlights.where((flight) {
+        String selectedDay = _getDayName(widget.departDate.weekday);
+        return flight.schedule.days.contains(selectedDay);
+      }).toList();
+
+      print('Filtered to ${filteredFlights.length} flights available on selected day');
+
+      setState(() {
+        _flightResults = filteredFlights;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching flight information: $e');
+      setState(() {
+        _errorMessage = 'Failed to load flight information. Please try again.';
+        _isLoading = false;
+      });
     }
   }
 
@@ -197,11 +241,24 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
     }
   }
 
+  String _getAirportDisplayName(String code) {
+    final airportInfo = MockMalaysiaFlightService.getAirportInfo(code);
+    if (airportInfo.isNotEmpty) {
+      return '${airportInfo['city']} (${code})';
+    }
+    return code;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.transportType ?? 'Transport'} Results'),
+        title: Text('${widget.transportType ?? 'Transport'} Results',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -222,7 +279,21 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.transportType == 'Car') ...[
+                if (widget.transportType == 'Flight') ...[
+                  Text(
+                    '${_getAirportDisplayName(widget.origin)} → ${_getAirportDisplayName(widget.destination)}',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                  Text(
+                    'Depart date: ${widget.departDate.day}/${widget.departDate.month}/${widget.departDate.year}',
+                    style: TextStyle(fontSize: 14, color: Colors.black),
+                  ),
+                  if (widget.returnDate != null)
+                    Text(
+                      'Return date: ${widget.returnDate!.day}/${widget.returnDate!.month}/${widget.returnDate!.year}',
+                      style: TextStyle(fontSize: 14, color: Colors.black),
+                    ),
+                ] else if (widget.transportType == 'Car') ...[
                   Text(
                     'Car Rental - ${widget.carLocation ?? widget.origin}',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
@@ -295,7 +366,7 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
                 ],
               ),
             )
-                : _searchResults.isEmpty
+                : (widget.transportType == 'Flight' ? _flightResults.isEmpty : _searchResults.isEmpty)
                 ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -303,6 +374,8 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
                   Icon(
                     widget.transportType == 'Car'
                         ? Icons.directions_car
+                        : widget.transportType == 'Flight'
+                        ? Icons.flight
                         : Icons.directions_transit,
                     size: 64,
                     color: Colors.grey,
@@ -316,6 +389,8 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
                   Text(
                     widget.transportType == 'Car'
                         ? 'Try selecting a different location or date'
+                        : widget.transportType == 'Flight'
+                        ? 'No flights available for the selected route and date'
                         : 'Try adjusting your search criteria',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     textAlign: TextAlign.center,
@@ -325,7 +400,19 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
             )
                 : RefreshIndicator(
               onRefresh: _fetchTransportData,
-              child: ListView.builder(
+              child: widget.transportType == 'Flight'
+                  ? ListView.builder(
+                itemCount: _flightResults.length,
+                itemBuilder: (context, index) {
+                  final flight = _flightResults[index];
+                  return FlightCard(
+                    flight: flight,
+                    departDate: widget.departDate,
+                    returnDate: widget.returnDate,
+                  );
+                },
+              )
+                  : ListView.builder(
                 itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   final transport = _searchResults[index];
@@ -366,7 +453,8 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
           ),
         ],
       ),
-      floatingActionButton: !_isLoading && _searchResults.isNotEmpty
+      floatingActionButton: !_isLoading &&
+          (widget.transportType == 'Flight' ? _flightResults.isNotEmpty : _searchResults.isNotEmpty)
           ? FloatingActionButton(
         onPressed: _fetchTransportData,
         backgroundColor: Color(0xFF7107F3),

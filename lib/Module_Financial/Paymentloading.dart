@@ -16,30 +16,25 @@ class Paymentloading extends StatefulWidget {
   final String expiry;
   final String cvv;
   final double totalPrice;
-
-  // Transport booking parameters (optional)
   final Map<String, dynamic>? transport;
   final String? selectedTime;
   final List<int> selectedSeats;
   final DateTime? departDate;
   final DateTime? returnDate;
   final int? numberOfDays;
-
-  // Attraction booking parameters (optional)
   final Attraction? attraction;
   final List<Map<String, dynamic>>? selectedTickets;
   final DateTime? visitDate;
-
-  // Hotel booking parameters (optional)
   final Hotel? hotel;
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
   final int? numberOfGuests;
   final int? numberOfRooms;
   final int? numberOfNights;
-
-  // Updated room type parameters - now supports multiple room types
   final List<Map<String, dynamic>>? selectedRoomTypes;
+  final List<Map<String, dynamic>>? passengerData;
+  final Map<String, dynamic>? leadPassengerData;
+  final double additionalCosts;
 
   const Paymentloading({
     Key? key,
@@ -47,26 +42,25 @@ class Paymentloading extends StatefulWidget {
     required this.expiry,
     required this.cvv,
     required this.totalPrice,
-    // Transport parameters
     this.transport,
     this.selectedTime,
     this.selectedSeats = const [],
     this.departDate,
     this.returnDate,
     this.numberOfDays,
-    // Attraction parameters
     this.attraction,
     this.selectedTickets,
     this.visitDate,
-    // Hotel parameters
     this.hotel,
     this.checkInDate,
     this.checkOutDate,
     this.numberOfGuests,
     this.numberOfRooms,
     this.numberOfNights,
-    // Updated room type parameters
     this.selectedRoomTypes,
+    this.passengerData,
+    this.leadPassengerData,
+    this.additionalCosts = 0.0,
   }) : super(key: key);
 
   @override
@@ -77,6 +71,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   late AnimationController _controller;
   late Animation<double> _animation;
   bool _isProcessing = true;
+  bool get isFlightBooking => widget.transport?['type']?.toString().toLowerCase() == 'flight';
 
   // Firebase references
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
@@ -214,6 +209,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             'visitDate': widget.visitDate?.toIso8601String(),
           });
         } else {
+          Map<String, dynamic> transportData = Map<String, dynamic>.from(widget.transport ?? {});
           // Transport booking data
           bookingData.addAll({
             'transport': widget.transport,
@@ -223,6 +219,72 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             'returnDate': widget.returnDate?.toIso8601String(),
             'numberOfDays': widget.numberOfDays,
           });
+          if (isFlightBooking) {
+            bookingData.addAll({
+              'flightNumber': transportData['flightNumber'],
+              'airline': transportData['airline'],
+              'aircraft': transportData['aircraft'],
+              'selectedClass': transportData['selectedClass'],
+              'departureTime': transportData['departureTime'],
+              'arrivalTime': transportData['arrivalTime'],
+              'duration': transportData['duration'],
+              'route': '${transportData['origin']} → ${transportData['destination']}',
+              'amenities': transportData['amenities'],
+              // ADD PASSENGER DATA:
+              'passengerData': widget.passengerData,
+              'leadPassengerData': widget.leadPassengerData,
+              'numberOfPassengers': widget.passengerData?.length ?? 0,
+              'additionalCosts': widget.additionalCosts,
+              'basePriceBeforeAddons': widget.totalPrice - widget.additionalCosts,
+            });
+
+            // Calculate add-on summary for Firebase
+            if (widget.passengerData != null) {
+              int checkedBaggageCount = 0;
+              int mealCount = 0;
+              List<String> selectedMeals = [];
+              List<String> baggageWeights = [];
+              double totalBaggageCost = 0.0;
+
+              for (var passenger in widget.passengerData!) {
+                // Updated baggage logic
+                if (passenger['checkedBaggageWeight'] != null) {
+                  checkedBaggageCount++;
+                  baggageWeights.add(passenger['checkedBaggageWeight']);
+
+                  // Calculate baggage cost based on weight
+                  switch (passenger['checkedBaggageWeight']) {
+                    case '20kg': totalBaggageCost += 77.0; break;
+                    case '25kg': totalBaggageCost += 89.0; break;
+                    case '30kg': totalBaggageCost += 109.0; break;
+                    case '40kg': totalBaggageCost += 166.0; break;
+                    case '50kg': totalBaggageCost += 217.0; break;
+                    case '60kg': totalBaggageCost += 287.0; break;
+                  }
+                }
+
+                if (passenger['selectedMeal'] != null && passenger['selectedMeal'] != 'None') {
+                  mealCount++;
+                  selectedMeals.add(passenger['selectedMeal']);
+                }
+              }
+
+              bookingData.addAll({
+                'checkedBaggageCount': checkedBaggageCount,
+                'baggageWeights': baggageWeights,
+                'totalBaggageCost': totalBaggageCost,
+                'mealCount': mealCount,
+                'selectedMeals': selectedMeals,
+                'totalMealCost': mealCount * 15.0, // Assuming meal price is 15
+              });
+            }
+            // Update booking type for flights
+            bookingData['bookingType'] = 'flight';
+            bookingData['transportType'] = 'flight';
+
+
+          }
+
         }
 
         // Save to user's bookings using the custom booking ID as key
@@ -258,12 +320,14 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   String _getBookingType() {
     if (isHotelBooking) return 'hotel';
     if (isAttractionBooking) return 'attraction';
+    if (isFlightBooking) return 'flight';
     return 'transport';
   }
 
   String _getCollectionName() {
     if (isHotelBooking) return 'hotel_bookings';
     if (isAttractionBooking) return 'attraction_bookings';
+    if (isFlightBooking) return 'flight_bookings';
     return 'transport_bookings';
   }
 
@@ -316,6 +380,34 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     }
 
     return roomSummary.join(', ');
+  }
+
+  String _getPassengerSummary() {
+    if (widget.passengerData == null || widget.passengerData!.isEmpty) {
+      return '';
+    }
+
+    List<String> summary = [];
+    int baggageCount = 0;
+    int mealCount = 0;
+
+    for (var passenger in widget.passengerData!) {
+      if (passenger['checkedBaggageWeight'] != null) {
+        baggageCount++;
+      }
+      if (passenger['selectedMeal'] != null && passenger['selectedMeal'] != 'None') {
+        mealCount++;
+      }
+    }
+
+    if (baggageCount > 0) {
+      summary.add('$baggageCount Baggage');
+    }
+    if (mealCount > 0) {
+      summary.add('$mealCount Meal');
+    }
+
+    return summary.isEmpty ? 'No Add-ons' : summary.join(', ');
   }
 
   @override
@@ -384,16 +476,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             ),
             SizedBox(height: 15),
 
-            // Description with booking type context
-            Text(
-              _getProcessingDescription(),
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey[600],
-              ),
-            ),
-
             // Show room type information for hotel bookings
             if (isHotelBooking && widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
               SizedBox(height: 15),
@@ -437,7 +519,117 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               ),
             ],
 
+            if (isFlightBooking && widget.transport != null) ...[
+              SizedBox(height: 15),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.flight, color: Colors.purple[700], size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          "Flight Details:",
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.purple[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      "${widget.transport!['airline']} ${widget.transport!['flightNumber']}",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.purple[700],
+                      ),
+                    ),
+                    Text(
+                      "${widget.transport!['origin']} → ${widget.transport!['destination']}",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.purple[600],
+                      ),
+                    ),
+                    if (widget.transport!['selectedClass'] != null)
+                      Text(
+                        "${widget.transport!['selectedClass']} Class",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.purple[600],
+                        ),
+                      ),
+                    // Updated passenger info
+                    if (widget.passengerData != null) ...[
+                      Text(
+                        "${widget.passengerData!.length} Passenger${widget.passengerData!.length > 1 ? 's' : ''}",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.purple[600],
+                        ),
+                      ),
+                      Text(
+                        _getPassengerSummary(),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.purple[500],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+
             SizedBox(height: 10),
+
+            if (isFlightBooking && widget.additionalCosts > 0) ...[
+              SizedBox(height: 10),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_circle_outline, color: Colors.green[700], size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      "Add-ons: MYR ${widget.additionalCosts.toStringAsFixed(0)}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             Text(
               "Please do not close this page",
@@ -515,27 +707,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   IconData _getCardIcon() {
     if (isHotelBooking) return Icons.hotel;
     if (isAttractionBooking) return Icons.confirmation_number;
+    if (isFlightBooking) return Icons.flight;
     return Icons.credit_card;
-  }
-
-  String _getProcessingDescription() {
-    if (isHotelBooking) {
-      if (widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) {
-        int totalRooms = widget.selectedRoomTypes!
-            .map((room) => room['quantity'] as int? ?? 1)
-            .fold(0, (sum, quantity) => sum + quantity);
-
-        if (totalRooms > 1) {
-          return "Processing your ${totalRooms} rooms booking...";
-        } else {
-          String roomType = widget.selectedRoomTypes!.first['roomType'] ?? 'room';
-          return "Processing your ${roomType.toLowerCase()} booking...";
-        }
-      }
-      return "Processing your hotel booking...";
-    }
-    if (isAttractionBooking) return "Processing your attraction booking...";
-    return "Processing your transport booking...";
   }
 
   Widget _buildAnimatedDots() {
