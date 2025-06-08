@@ -820,18 +820,33 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
                   border: Border.all(color: Colors.black, width: 1),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
-                alignment: Alignment.center,
-                child: TextField(
-                  controller: _numberOfDaysController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Number of days',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+                child: DropdownButton<int>(
+                  dropdownColor: Colors.white,
+                  value: _numberOfDaysController.text.isNotEmpty
+                      ? int.tryParse(_numberOfDaysController.text)
+                      : null,
+                  hint: Text(
+                    'Number of days',
+                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.grey[400]),
                   ),
+                  items: List.generate(10, (index) => index + 1)
+                      .map((int value) => DropdownMenuItem<int>(
+                    value: value,
+                    child: Text(
+                      value.toString(),
+                      style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    ),
+                  ))
+                      .toList(),
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      _numberOfDaysController.text = newValue?.toString() ?? '';
+                    });
+                  },
+                  underline: Container(), // Removes the default underline
+                  isDense: true,
                   style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                  textAlignVertical: TextAlignVertical.center,
                 ),
               ),
             ),
