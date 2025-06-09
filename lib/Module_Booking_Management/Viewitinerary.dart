@@ -1,112 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:localquest/Module_Booking_Management/Bookingallinone.dart' hide Attraction hide Transport;
 import '../Model/transport.dart';
 import '../Model/attraction_model.dart';
 import '../services/itinerary_service.dart';
 import '../services/itinerary_storage_service.dart';
 import '../widgets/state_attraction_viewer.dart';
-import 'Viewitinerary.dart';
+import 'package:intl/intl.dart';
 
-class ItineraryDisplayPage extends StatefulWidget {
-  final GeneratedItinerary itinerary;
-  const ItineraryDisplayPage({Key? key, required this.itinerary}) : super(key: key);
+class ViewItineraryPage extends StatefulWidget {
+  const ViewItineraryPage({Key? key}) : super(key: key);
 
   @override
-  _ItineraryDisplayPageState createState() => _ItineraryDisplayPageState();
+  _ViewItineraryPageState createState() => _ViewItineraryPageState();
 }
 
-class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
-  int selectedDayIndex = 0;
-  bool showAttractionsViewer = false;
-  bool isSaving = false;
+class _ViewItineraryPageState extends State<ViewItineraryPage> {
+  List<SavedItinerary> savedItineraries = [];
+  bool isLoading = true;
 
-  Future<void> _saveItinerary() async {
-    // Show dialog to get custom name
-    final customName = await _showSaveDialog();
-    if (customName == null || customName.trim().isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedItineraries();
+  }
 
+  Future<void> _loadSavedItineraries() async {
     setState(() {
-      isSaving = true;
+      isLoading = true;
     });
 
     try {
-      // Check if name already exists
-      final exists = await ItineraryStorageService.doesNameExist(customName.trim());
-      if (exists) {
-        _showErrorSnackBar('An itinerary with this name already exists');
-        setState(() {
-          isSaving = false;
-        });
-        return;
-      }
-
-      final success = await ItineraryStorageService.saveItinerary(widget.itinerary, customName.trim());
-
+      final itineraries = await ItineraryStorageService.getAllSavedItineraries();
       setState(() {
-        isSaving = false;
+        savedItineraries = itineraries;
+        isLoading = false;
       });
-
-      if (success) {
-        _showSuccessSnackBar('Itinerary saved successfully!');
-      } else {
-        _showErrorSnackBar('Failed to save itinerary');
-      }
     } catch (e) {
       setState(() {
-        isSaving = false;
+        isLoading = false;
       });
-      _showErrorSnackBar('Error saving itinerary: $e');
+      _showErrorSnackBar('Error loading saved itineraries');
     }
-  }
-
-  Future<String?> _showSaveDialog() async {
-    final controller = TextEditingController();
-
-    // Generate default name based on states and date
-    final states = widget.itinerary.originalRequest.selectedStates.join('-');
-    final date = DateTime.now();
-    final defaultName = '$states Trip ${date.day}/${date.month}/${date.year}';
-    controller.text = defaultName;
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Save Itinerary'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Give your itinerary a memorable name:',
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: 'Itinerary Name',
-                border: OutlineInputBorder(),
-                hintText: 'e.g., Summer Holiday 2024',
-              ),
-              maxLength: 50,
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text('Save'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -114,11 +48,6 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
       ),
     );
   }
@@ -126,25 +55,97 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
+        content: Text(message),
         backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'View Saved',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => ViewItineraryPage()),
-            );
-          },
-        ),
       ),
     );
+  }
+
+  Future<void> _deleteItinerary(SavedItinerary itinerary) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Itinerary'),
+        content: Text('Are you sure you want to delete "${itinerary.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await ItineraryStorageService.deleteItinerary(itinerary.id);
+      if (success) {
+        _showSuccessSnackBar('Itinerary deleted successfully');
+        _loadSavedItineraries();
+      } else {
+        _showErrorSnackBar('Failed to delete itinerary');
+      }
+    }
+  }
+
+  Future<void> _renameItinerary(SavedItinerary itinerary) async {
+    final controller = TextEditingController(text: itinerary.name);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Rename Itinerary'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: 'Itinerary Name',
+            border: OutlineInputBorder(),
+          ),
+          maxLength: 50,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != itinerary.name) {
+      final exists = await ItineraryStorageService.doesNameExist(newName);
+      if (exists) {
+        _showErrorSnackBar('An itinerary with this name already exists');
+        return;
+      }
+
+      final success = await ItineraryStorageService.updateItineraryName(itinerary.id, newName);
+      if (success) {
+        _showSuccessSnackBar('Itinerary renamed successfully');
+        _loadSavedItineraries();
+      } else {
+        _showErrorSnackBar('Failed to rename itinerary');
+      }
+    }
+  }
+
+  void _navigateToItineraryDetails(SavedItinerary savedItinerary) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SavedItineraryDetailPage(savedItinerary: savedItinerary),
+      ),
+    ).then((_) {
+      // Refresh the list when returning from detail page
+      _loadSavedItineraries();
+    });
   }
 
   @override
@@ -156,51 +157,321 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Your Trip Itinerary",
+          "Saved Itineraries",
           style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF02ED64), Color(0xFFFFFA02)],
+        backgroundColor: Color(0xFF0816A7),
+        actions: [
+          IconButton(
+            onPressed: _loadSavedItineraries,
+            icon: Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : savedItineraries.isEmpty
+          ? _buildEmptyState(screenWidth, screenHeight)
+          : ListView.builder(
+        padding: EdgeInsets.all(screenWidth * 0.04),
+        itemCount: savedItineraries.length,
+        itemBuilder: (context, index) {
+          return _buildItineraryCard(savedItineraries[index], screenWidth, screenHeight);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(double screenWidth, double screenHeight) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: screenWidth * 0.2,
+            color: Colors.grey.shade400,
+          ),
+          SizedBox(height: screenHeight * 0.02),
+          Text(
+            'No Saved Itineraries',
+            style: TextStyle(
+              fontSize: screenWidth * 0.05,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
             ),
           ),
-        ),
-        actions: [
-          // Save button
-          if (isSaving)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              onPressed: _saveItinerary,
-              icon: Icon(Icons.bookmark_add, color: Colors.white),
-              tooltip: 'Save Itinerary',
+          SizedBox(height: screenHeight * 0.01),
+          Text(
+            'Create and save itineraries to view them here',
+            style: TextStyle(
+              fontSize: screenWidth * 0.035,
+              color: Colors.grey.shade500,
             ),
-
-          // View saved itineraries button
-          IconButton(
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: screenHeight * 0.03),
+          ElevatedButton.icon(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => ViewItineraryPage()),
+                MaterialPageRoute(
+                  builder: (context) => Bookingallinone(), // Replace with your page
+                ),
               );
             },
-            icon: Icon(Icons.bookmark, color: Colors.white),
-            tooltip: 'View Saved Itineraries',
+            icon: Icon(Icons.add),
+            label: Text('Create New Itinerary'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.06,
+                vertical: screenHeight * 0.015,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+            ),
           ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildItineraryCard(SavedItinerary savedItinerary, double screenWidth, double screenHeight) {
+    final itinerary = savedItinerary.itinerary;
+
+    return Card(
+      margin: EdgeInsets.only(bottom: screenHeight * 0.02),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        onTap: () => _navigateToItineraryDetails(savedItinerary),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(screenWidth * 0.04),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          savedItinerary.name,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.005),
+                        Text(
+                          "Saved on ${DateFormat('dd/MM/yyyy').format(savedItinerary.savedDate)}",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.03,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.grey.shade400,
+                        size: screenWidth * 0.04,
+                      ),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'rename') {
+                            _renameItinerary(savedItinerary);
+                          } else if (value == 'delete') {
+                            _deleteItinerary(savedItinerary);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'rename',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 18),
+                                SizedBox(width: 8),
+                                Text('Rename'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.015),
+
+              // Trip Summary Row
+              Row(
+                children: [
+                  // Duration
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.025,
+                      vertical: screenHeight * 0.005,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calendar_today,
+                            size: screenWidth * 0.035,
+                            color: Colors.blue.shade700),
+                        SizedBox(width: screenWidth * 0.01),
+                        Text(
+                          "${itinerary.days.length} Days",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.03,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(width: screenWidth * 0.02),
+
+                  // Cost
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.025,
+                      vertical: screenHeight * 0.005,
+                    ),
+                    decoration: BoxDecoration(
+                      color: itinerary.isWithinBudget ? Colors.green.shade50 : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: itinerary.isWithinBudget ? Colors.green.shade200 : Colors.red.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.attach_money,
+                            size: screenWidth * 0.035,
+                            color: itinerary.isWithinBudget ? Colors.green.shade700 : Colors.red.shade700),
+                        Text(
+                          "RM${itinerary.totalCost.toStringAsFixed(0)}",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.03,
+                            fontWeight: FontWeight.w600,
+                            color: itinerary.isWithinBudget ? Colors.green.shade700 : Colors.red.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: screenHeight * 0.015),
+
+              // States
+              Row(
+                children: [
+                  Icon(Icons.location_on,
+                      size: screenWidth * 0.04,
+                      color: Colors.grey.shade600),
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: Text(
+                      itinerary.originalRequest.selectedStates.join(' • '),
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.032,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: screenHeight * 0.01),
+
+              // Origin
+              Row(
+                children: [
+                  Icon(Icons.flight_takeoff,
+                      size: screenWidth * 0.04,
+                      color: Colors.grey.shade600),
+                  SizedBox(width: screenWidth * 0.02),
+                  Text(
+                    "From ${itinerary.originalRequest.origin}",
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.03,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SavedItineraryDetailPage extends StatefulWidget {
+  final SavedItinerary savedItinerary;
+
+  const SavedItineraryDetailPage({Key? key, required this.savedItinerary}) : super(key: key);
+
+  @override
+  _SavedItineraryDetailPageState createState() => _SavedItineraryDetailPageState();
+}
+
+class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
+  int selectedDayIndex = 0;
+  bool showAttractionsViewer = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    final itinerary = widget.savedItinerary.itinerary;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.savedItinerary.name,
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: Color(0xFF0816A7),
+        actions: [
           // Attractions browser button
           IconButton(
             onPressed: () {
@@ -240,72 +511,38 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "${widget.itinerary.days.length} Days Trip",
+                      "${itinerary.days.length} Days Trip",
                       style: TextStyle(
                         fontSize: screenWidth * 0.05,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
-                    // Save and explore buttons row
-                    Row(
-                      children: [
-                        // Save button (secondary)
-                        ElevatedButton.icon(
-                          onPressed: isSaving ? null : _saveItinerary,
-                          icon: isSaving
-                              ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                              : Icon(Icons.bookmark_add, size: screenWidth * 0.035),
-                          label: Text(
-                            isSaving ? 'Saving...' : 'Save',
-                            style: TextStyle(fontSize: screenWidth * 0.032),
+                    // Explore attractions button
+                    if (!showAttractionsViewer)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            showAttractionsViewer = true;
+                          });
+                        },
+                        icon: Icon(Icons.explore, size: screenWidth * 0.04),
+                        label: Text(
+                          'Explore',
+                          style: TextStyle(fontSize: screenWidth * 0.032),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.03,
+                            vertical: screenHeight * 0.008,
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.03,
-                              vertical: screenHeight * 0.008,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        SizedBox(width: screenWidth * 0.02),
-
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              showAttractionsViewer = !showAttractionsViewer;  // Toggle instead of just setting to true
-                            });
-                          },
-                          icon: Icon(
-                              showAttractionsViewer ? Icons.close : Icons.explore,  // Dynamic icon
-                              size: screenWidth * 0.04
-                          ),
-                          label: Text(
-                            showAttractionsViewer ? 'Close' : 'Explore',  // Dynamic label
-                            style: TextStyle(fontSize: screenWidth * 0.032),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: showAttractionsViewer ? Colors.red : Colors.blue,  // Dynamic color
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.03,
-                              vertical: screenHeight * 0.008,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
                 SizedBox(height: screenHeight * 0.01),
@@ -313,15 +550,15 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Total Cost: RM${widget.itinerary.totalCost.toStringAsFixed(2)}",
+                      "Total Cost: RM${itinerary.totalCost.toStringAsFixed(2)}",
                       style: TextStyle(
                         fontSize: screenWidth * 0.04,
                         fontWeight: FontWeight.w600,
-                        color: widget.itinerary.isWithinBudget ? Colors.green : Colors.red,
+                        color: itinerary.isWithinBudget ? Colors.green : Colors.red,
                       ),
                     ),
                     Text(
-                      "Budget: RM${widget.itinerary.originalRequest.maxBudget.toStringAsFixed(2)}",
+                      "Budget: RM${itinerary.originalRequest.maxBudget.toStringAsFixed(2)}",
                       style: TextStyle(
                         fontSize: screenWidth * 0.04,
                         color: Colors.grey.shade600,
@@ -331,10 +568,17 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                 ),
                 SizedBox(height: screenHeight * 0.01),
                 Text(
-                  "States: ${widget.itinerary.originalRequest.selectedStates.join(', ')}",
+                  "States: ${itinerary.originalRequest.selectedStates.join(', ')}",
                   style: TextStyle(
                     fontSize: screenWidth * 0.035,
                     color: Colors.grey.shade700,
+                  ),
+                ),
+                Text(
+                  "Saved on: ${DateFormat('dd/MM/yyyy HH:mm').format(widget.savedItinerary.savedDate)}",
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.03,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -380,9 +624,9 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   ),
                   // The attractions viewer widget
                   StateAttractionsViewer(
-                    selectedStates: widget.itinerary.originalRequest.selectedStates,
-                    tripType: widget.itinerary.originalRequest.tripType,
-                    maxBudget: widget.itinerary.originalRequest.maxBudget,
+                    selectedStates: itinerary.originalRequest.selectedStates,
+                    tripType: itinerary.originalRequest.tripType,
+                    maxBudget: itinerary.originalRequest.maxBudget,
                   ),
                 ],
               ),
@@ -395,18 +639,15 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              itemCount: widget.itinerary.days.length,
+              itemCount: itinerary.days.length,
               itemBuilder: (context, index) {
-                final day = widget.itinerary.days[index];
+                final day = itinerary.days[index];
                 final isSelected = selectedDayIndex == index;
 
-                // Determine what to display for the day state
                 String dayStateText;
                 if (index == 0) {
-                  // First day shows travel from origin
-                  dayStateText = "From ${widget.itinerary.originalRequest.origin}";
+                  dayStateText = "From ${itinerary.originalRequest.origin}";
                 } else {
-                  // Other days show the destination state
                   dayStateText = day.state;
                 }
 
@@ -459,14 +700,14 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
 
           // Day details
           Expanded(
-            child: _buildDayDetails(widget.itinerary.days[selectedDayIndex], screenWidth, screenHeight),
+            child: _buildDayDetails(itinerary.days[selectedDayIndex], itinerary, screenWidth, screenHeight),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDayDetails(ItineraryDay day, double screenWidth, double screenHeight) {
+  Widget _buildDayDetails(ItineraryDay day, GeneratedItinerary itinerary, double screenWidth, double screenHeight) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(screenWidth * 0.04),
       child: Column(
@@ -486,10 +727,9 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Updated header text to show origin for first day
                 Text(
                   selectedDayIndex == 0
-                      ? "${day.date.day}/${day.date.month}/${day.date.year} - Travel from ${widget.itinerary.originalRequest.origin} to ${day.state}"
+                      ? "${day.date.day}/${day.date.month}/${day.date.year} - Travel from ${itinerary.originalRequest.origin} to ${day.state}"
                       : "${day.date.day}/${day.date.month}/${day.date.year} - ${day.state}",
                   style: TextStyle(
                     fontSize: screenWidth * 0.045,
@@ -515,18 +755,13 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   ),
                 ],
                 SizedBox(height: screenHeight * 0.01),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Day Cost: RM${day.totalCost.toStringAsFixed(2)}",
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.035,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ],
+                Text(
+                  "Day Cost: RM${day.totalCost.toStringAsFixed(2)}",
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.035,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade700,
+                  ),
                 ),
               ],
             ),
@@ -551,27 +786,13 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
 
           // Attractions summary
           if (day.attractions.isNotEmpty) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Attractions Visited",
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.04,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    _showSingleStateAttractions(day.state);
-                  },
-                  child: Text(
-                    'See more',
-                    style: TextStyle(fontSize: screenWidth * 0.03),
-                  ),
-                ),
-              ],
+            Text(
+              "Attractions Visited",
+              style: TextStyle(
+                fontSize: screenWidth * 0.04,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             SizedBox(height: screenHeight * 0.01),
             ...day.attractions.map((attraction) => _buildAttractionCard(attraction, screenWidth, screenHeight)),
@@ -593,18 +814,6 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
             ...day.transports.map((transport) => _buildTransportCard(transport, screenWidth, screenHeight)),
           ],
         ],
-      ),
-    );
-  }
-
-  // Method to show attractions for a single state
-  void _showSingleStateAttractions(String state) {
-    showDialog(
-      context: context,
-      builder: (context) => StateAttractionsDialog(
-        state: state,
-        attractions: [], // Will be loaded by the dialog
-        tripType: widget.itinerary.originalRequest.tripType,
       ),
     );
   }

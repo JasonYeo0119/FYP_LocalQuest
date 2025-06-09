@@ -4,6 +4,7 @@ import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
 import 'package:localquest/Module_Booking_Management/History.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
+import 'package:localquest/Module_Booking_Management/Viewitinerary.dart';
 import 'package:localquest/Module_Financial/Deals.dart';
 import 'package:localquest/Module_Financial/Payment.dart';
 import 'package:localquest/Module_User_Account/Favourite.dart';
@@ -266,7 +267,7 @@ class _HomepageState extends State<Homepage> {
 
               // Itinerary Tab
               GestureDetector(
-                onTap: () => _navigateToDeals(),
+                onTap: () => _navigateToViewItinerary(),
                 child: Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(16),
@@ -558,4 +559,9 @@ class _HomepageState extends State<Homepage> {
   void _navigateToProfile() {
     Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
   }
+
+  void _navigateToViewItinerary() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => ViewItineraryPage()));
+  }
+
 }

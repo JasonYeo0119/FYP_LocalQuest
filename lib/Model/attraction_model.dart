@@ -53,6 +53,37 @@ class Attraction {
     );
   }
 
+  factory Attraction.fromJson(Map<String, dynamic> json) {
+    List<PricingInfo> pricingList = [];
+    if (json['pricing'] != null) {
+      for (var item in json['pricing']) {
+        pricingList.add(PricingInfo.fromJson(item));
+      }
+    }
+
+    List<String> typeList = [];
+    if (json['type'] != null) {
+      typeList = List<String>.from(json['type']);
+    }
+
+    List<String> imagesList = [];
+    if (json['images'] != null) {
+      imagesList = List<String>.from(json['images']);
+    }
+
+    return Attraction(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      description: json['description'] ?? '',
+      type: typeList,
+      pricing: pricingList,
+      images: imagesList,
+    );
+  }
+
   // Convert Attraction to Map for Firebase
   Map<String, dynamic> toMap() {
     return {
@@ -63,6 +94,20 @@ class Attraction {
       'description': description,
       'type': type,
       'pricing': pricing.map((p) => p.toMap()).toList(),
+      'images': images,
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'address': address,
+      'city': city,
+      'state': state,
+      'description': description,
+      'type': type,
+      'pricing': pricing.map((p) => p.toJson()).toList(),
       'images': images,
     };
   }
@@ -84,10 +129,25 @@ class PricingInfo {
     );
   }
 
+  factory PricingInfo.fromJson(Map<String, dynamic> json) {
+    return PricingInfo(
+      remark: json['remark'] ?? '',
+      price: (json['price'] ?? 0.0).toDouble(),
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'remark': remark,
       'price': price,
     };
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'remark': remark,
+      'price': price,
+    };
+  }
 }
+

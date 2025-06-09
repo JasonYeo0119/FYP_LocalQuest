@@ -82,6 +82,33 @@ class Transport {
     );
   }
 
+  factory Transport.fromJson(Map<String, dynamic> json) {
+    return Transport(
+      id: json['id'] ?? '',
+      name: json['name'] ?? 'Unnamed Transport',
+      type: json['type'] ?? 'Unknown',
+      origin: json['origin'] ?? '',
+      destination: json['destination'] ?? '',
+      price: (json['price'] ?? 0.0).toDouble(),
+      imageUrl: json['imageUrl'],
+      isHidden: json['isHidden'] ?? false,
+      operatingDays: json['operatingDays'] != null
+          ? List<String>.from(json['operatingDays'])
+          : [],
+      timeSlots: json['timeSlots'] != null
+          ? List<String>.from(json['timeSlots'])
+          : [],
+      availableSeats: json['availableSeats'] != null
+          ? List<int>.from(json['availableSeats'])
+          : [],
+      totalSeats: json['totalSeats'] ?? 33,
+      description: json['description'],
+      additionalInfo: json['additionalInfo'] != null
+          ? Map<String, dynamic>.from(json['additionalInfo'])
+          : null,
+    );
+  }
+
   // Helper method to build additionalInfo based on transport type
   static Map<String, dynamic>? _buildAdditionalInfo(Map<String, dynamic> data, String type) {
     Map<String, dynamic> additionalInfo = {};
@@ -166,6 +193,25 @@ class Transport {
     }
 
     return map;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type,
+      'origin': origin,
+      'destination': destination,
+      'price': price,
+      'imageUrl': imageUrl,
+      'isHidden': isHidden,
+      'operatingDays': operatingDays,
+      'timeSlots': timeSlots,
+      'availableSeats': availableSeats,
+      'totalSeats': totalSeats,
+      'description': description,
+      'additionalInfo': additionalInfo,
+    };
   }
 
   // Helper methods

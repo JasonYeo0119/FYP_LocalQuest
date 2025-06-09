@@ -49,15 +49,15 @@ class Bookingallinone extends StatefulWidget {
 class _BookingallinoneState extends State<Bookingallinone> {
   TextEditingController _checkInController = TextEditingController();
   TextEditingController _checkOutController = TextEditingController();
-  TextEditingController _originController = TextEditingController();
-  TextEditingController _paxController = TextEditingController();
-  TextEditingController _budgetController = TextEditingController();
 
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
   String? selectedActivity;
   String? selectedFlex;
   Set<String> selectedStates = {};
+  String? selectedOriginState;
+  String? selectedPax;
+  String? selectedBudget;
 
   final ItineraryGenerator _itineraryGenerator = ItineraryGenerator();
   bool _isGenerating = false;
@@ -79,6 +79,34 @@ class _BookingallinoneState extends State<Bookingallinone> {
     {"name": "Sarawak", "image": "lib/Image/sarawak.png"},
     {"name": "Selangor", "image": "lib/Image/selangor.png"},
     {"name": "Terengganu", "image": "lib/Image/terengganu.png"},
+  ];
+
+  final List<String> malaysianStates = [
+    "Johor",
+    "Kedah",
+    "Kelantan",
+    "Kuala Lumpur",
+    "Labuan",
+    "Malacca",
+    "Negeri Sembilan",
+    "Pahang",
+    "Penang",
+    "Perak",
+    "Perlis",
+    "Putrajaya",
+    "Sabah",
+    "Sarawak",
+    "Selangor",
+    "Terengganu"
+  ];
+
+  final List<String> paxOptions = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"
+  ];
+
+  final List<String> budgetOptions = [
+    "500", "750", "1000", "1500", "2000", "2500", "3000", "3500",
+    "4000", "4500", "5000", "10000", "20000", "30000", "50000"
   ];
 
   void toggleStateSelection(String stateName) {
@@ -136,8 +164,8 @@ class _BookingallinoneState extends State<Bookingallinone> {
       return false;
     }
 
-    if (_originController.text.trim().isEmpty) {
-      _showErrorMessage("Please enter your origin location");
+    if (selectedOriginState == null || selectedOriginState!.trim().isEmpty) {
+      _showErrorMessage("Please select your origin state");
       return false;
     }
 
@@ -151,13 +179,13 @@ class _BookingallinoneState extends State<Bookingallinone> {
       return false;
     }
 
-    if (_paxController.text.trim().isEmpty || int.tryParse(_paxController.text) == null || int.parse(_paxController.text) <= 0) {
-      _showErrorMessage("Please enter a valid number of passengers (minimum 1)");
+    if (selectedPax == null || int.tryParse(selectedPax!) == null || int.parse(selectedPax!) <= 0) {
+      _showErrorMessage("Please select number of passengers");
       return false;
     }
 
-    if (_budgetController.text.trim().isEmpty || double.tryParse(_budgetController.text) == null || double.parse(_budgetController.text) <= 0) {
-      _showErrorMessage("Please enter a valid budget amount");
+    if (selectedBudget == null || double.tryParse(selectedBudget!) == null || double.parse(selectedBudget!) <= 0) {
+      _showErrorMessage("Please select a budget amount");
       return false;
     }
 
@@ -173,7 +201,7 @@ class _BookingallinoneState extends State<Bookingallinone> {
 
     // Additional validation for budget vs trip duration
     int tripDays = _checkOutDate!.difference(_checkInDate!).inDays;
-    double budgetPerDay = double.parse(_budgetController.text) / tripDays;
+    double budgetPerDay = double.parse(selectedBudget!) / tripDays;
     if (budgetPerDay < 50) {
       _showErrorMessage("Budget might be too low. Consider at least RM50 per day per person.");
       return false;
@@ -239,18 +267,14 @@ class _BookingallinoneState extends State<Bookingallinone> {
       // Create trip request from form data
       TripRequest tripRequest = TripRequest(
         selectedStates: selectedStates,
-        origin: _originController.text.trim(),
+        origin: selectedOriginState!.trim(),
         checkInDate: _checkInDate!,
         checkOutDate: _checkOutDate!,
-        numberOfPax: int.parse(_paxController.text),
-        maxBudget: double.parse(_budgetController.text),
+        numberOfPax: int.parse(selectedPax!),
+        maxBudget: double.parse(selectedBudget!),
         tripType: _convertToTripType(selectedActivity),
         flexibility: _convertToFlexibilityLevel(selectedFlex),
       );
-
-      print('Generating itinerary for ${tripRequest.tripDuration} days with budget RM${tripRequest.maxBudget}');
-      print('Trip type: ${tripRequest.tripType}, Flexibility: ${tripRequest.flexibility}');
-      print('Selected states: ${tripRequest.selectedStates.join(', ')}');
 
       // Generate itinerary
       GeneratedItinerary? itinerary = await _itineraryGenerator.generateItinerary(tripRequest);
@@ -383,7 +407,7 @@ class _BookingallinoneState extends State<Bookingallinone> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Selected States:",
+            "Selected States (Suggest 2 days for each state) :",
             style: TextStyle(
               color: Colors.black,
               fontSize: screenWidth * 0.033,
@@ -515,16 +539,32 @@ class _BookingallinoneState extends State<Bookingallinone> {
             ),
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
             alignment: Alignment.center,
-            child: TextField(
-              controller: _originController,
-              decoration: InputDecoration(
-                hintText: 'Where are you from?',
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedOriginState,
+                dropdownColor: Colors.white,
+                hint: Text(
+                  'Which state you will arrive at Malaysia?',
+                  style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                ),
+                isExpanded: true,
+                style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedOriginState = newValue;
+                  });
+                },
+                items: malaysianStates
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      value,
+                      style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                    ),
+                  );
+                }).toList(),
               ),
-              style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-              textAlignVertical: TextAlignVertical.center,
             ),
           ),
 
@@ -602,17 +642,32 @@ class _BookingallinoneState extends State<Bookingallinone> {
                   ),
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
                   alignment: Alignment.center,
-                  child: TextField(
-                    controller: _paxController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Number of Pax',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedPax,
+                      dropdownColor: Colors.white,
+                      hint: Text(
+                        'Number of Pax',
+                        style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                      ),
+                      isExpanded: true,
+                      style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedPax = newValue;
+                        });
+                      },
+                      items: paxOptions
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                    textAlignVertical: TextAlignVertical.center,
                   ),
                 ),
               ),
@@ -627,17 +682,32 @@ class _BookingallinoneState extends State<Bookingallinone> {
                   ),
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
                   alignment: Alignment.center,
-                  child: TextField(
-                    controller: _budgetController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Maximum Budget',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedBudget,
+                      dropdownColor: Colors.white,
+                      hint: Text(
+                        'Budget (MYR) /pax',
+                        style: TextStyle(fontSize: screenWidth * 0.036, color: Color(0xFFB1B1B1)),
+                      ),
+                      isExpanded: true,
+                      style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedBudget = newValue;
+                        });
+                      },
+                      items: budgetOptions
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            "MYR $value",
+                            style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                    textAlignVertical: TextAlignVertical.center,
                   ),
                 ),
               ),
