@@ -3,6 +3,8 @@ import 'package:localquest/Homepage.dart';
 import 'package:localquest/Module_Booking_Management/Bookingattractionmain.dart';
 import 'package:localquest/Module_Booking_Management/Bookinghotel.dart';
 import 'package:localquest/Module_Booking_Management/Bookingtransportmain.dart';
+import 'package:localquest/services/itinerary_service.dart';
+import 'Itinerarydisplayscreen.dart';
 
 @override
 void Search(BuildContext ctx) {
@@ -56,6 +58,9 @@ class _BookingallinoneState extends State<Bookingallinone> {
   String? selectedActivity;
   String? selectedFlex;
   Set<String> selectedStates = {};
+
+  final ItineraryGenerator _itineraryGenerator = ItineraryGenerator();
+  bool _isGenerating = false;
 
   final List<Map<String, dynamic>> states = [
     {"name": "Johor", "image": "lib/Image/johor.png"},
@@ -122,6 +127,161 @@ class _BookingallinoneState extends State<Bookingallinone> {
           }
         }
       });
+    }
+  }
+
+  bool _validateForm() {
+    if (selectedStates.isEmpty) {
+      _showErrorMessage("Please select at least one state to visit");
+      return false;
+    }
+
+    if (_originController.text.trim().isEmpty) {
+      _showErrorMessage("Please enter your origin location");
+      return false;
+    }
+
+    if (_checkInDate == null || _checkOutDate == null) {
+      _showErrorMessage("Please select check-in and check-out dates");
+      return false;
+    }
+
+    if (_checkInDate!.isAfter(_checkOutDate!) || _checkInDate!.isAtSameMomentAs(_checkOutDate!)) {
+      _showErrorMessage("Trip must be at least 1 day long");
+      return false;
+    }
+
+    if (_paxController.text.trim().isEmpty || int.tryParse(_paxController.text) == null || int.parse(_paxController.text) <= 0) {
+      _showErrorMessage("Please enter a valid number of passengers (minimum 1)");
+      return false;
+    }
+
+    if (_budgetController.text.trim().isEmpty || double.tryParse(_budgetController.text) == null || double.parse(_budgetController.text) <= 0) {
+      _showErrorMessage("Please enter a valid budget amount");
+      return false;
+    }
+
+    if (selectedActivity == null) {
+      _showErrorMessage("Please select a trip type");
+      return false;
+    }
+
+    if (selectedFlex == null) {
+      _showErrorMessage("Please select flexibility level");
+      return false;
+    }
+
+    // Additional validation for budget vs trip duration
+    int tripDays = _checkOutDate!.difference(_checkInDate!).inDays;
+    double budgetPerDay = double.parse(_budgetController.text) / tripDays;
+    if (budgetPerDay < 50) {
+      _showErrorMessage("Budget might be too low. Consider at least RM50 per day per person.");
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  TripType _convertToTripType(String? selected) {
+    switch (selected?.toLowerCase()) {
+      case 'adventure':
+        return TripType.adventure;
+      case 'chill':
+        return TripType.chill;
+      case 'mix':
+        return TripType.mix;
+      default:
+        return TripType.mix;
+    }
+  }
+
+  FlexibilityLevel _convertToFlexibilityLevel(String? selected) {
+    switch (selected?.toLowerCase()) {
+      case 'flexible':
+        return FlexibilityLevel.flexible;
+      case 'normal':
+        return FlexibilityLevel.normal;
+      case 'full':
+        return FlexibilityLevel.full;
+      default:
+        return FlexibilityLevel.normal;
+    }
+  }
+
+  Future<void> _generateItinerary() async {
+    if (!_validateForm()) return;
+
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      // Create trip request from form data
+      TripRequest tripRequest = TripRequest(
+        selectedStates: selectedStates,
+        origin: _originController.text.trim(),
+        checkInDate: _checkInDate!,
+        checkOutDate: _checkOutDate!,
+        numberOfPax: int.parse(_paxController.text),
+        maxBudget: double.parse(_budgetController.text),
+        tripType: _convertToTripType(selectedActivity),
+        flexibility: _convertToFlexibilityLevel(selectedFlex),
+      );
+
+      print('Generating itinerary for ${tripRequest.tripDuration} days with budget RM${tripRequest.maxBudget}');
+      print('Trip type: ${tripRequest.tripType}, Flexibility: ${tripRequest.flexibility}');
+      print('Selected states: ${tripRequest.selectedStates.join(', ')}');
+
+      // Generate itinerary
+      GeneratedItinerary? itinerary = await _itineraryGenerator.generateItinerary(tripRequest);
+
+      setState(() {
+        _isGenerating = false;
+      });
+
+      if (itinerary != null && itinerary.days.isNotEmpty) {
+        if (itinerary.isWithinBudget) {
+          _showSuccessMessage("Itinerary generated successfully! Total cost: RM${itinerary.totalCost.toStringAsFixed(2)}");
+          // Navigate to itinerary display page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ItineraryDisplayPage(itinerary: itinerary),
+            ),
+          );
+        } else {
+          _showErrorMessage("Generated itinerary exceeds budget (RM${itinerary.totalCost.toStringAsFixed(2)}). Try increasing budget or reducing requirements.");
+        }
+      } else {
+        _showErrorMessage("Could not generate itinerary. Try different states, increase budget, or modify your requirements.");
+      }
+
+    } catch (e) {
+      setState(() {
+        _isGenerating = false;
+      });
+      print('Error generating itinerary: $e');
+      _showErrorMessage("An error occurred while generating itinerary. Please check your internet connection and try again.");
     }
   }
 
@@ -573,17 +733,17 @@ class _BookingallinoneState extends State<Bookingallinone> {
 
           SizedBox(height: screenHeight * 0.015),
 
-          // Search button
+          // Generate Itinerary button (Updated to call _generateItinerary instead of Search)
           Center(
             child: GestureDetector(
-              onTap: () {
-                Search(context);
-              },
+              onTap: _isGenerating ? null : _generateItinerary, // Changed from Search(context) to _generateItinerary
               child: Container(
                 width: screenWidth * 0.39,
                 height: screenHeight * 0.04,
                 decoration: ShapeDecoration(
-                  gradient: LinearGradient(
+                  gradient: _isGenerating ?
+                  LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade300]) :
+                  LinearGradient(
                     begin: Alignment(1.00, 0.00),
                     end: Alignment(-1, 0),
                     colors: [Color(0xFF02ED64), Color(0xFFFFFA02)],
@@ -602,12 +762,36 @@ class _BookingallinoneState extends State<Bookingallinone> {
                   ],
                 ),
                 child: Center(
-                  child: Text(
-                    'Search',
+                  child: _isGenerating ?
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: screenWidth * 0.04,
+                        height: screenWidth * 0.04,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: screenWidth * 0.02),
+                      Text(
+                        'Generating...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: screenWidth * 0.032,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ) :
+                  Text(
+                    'Generate Itinerary', // Changed from 'Search' to 'Generate Itinerary'
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: screenWidth * 0.036,
+                      fontSize: screenWidth * 0.032, // Slightly smaller font to fit text
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                     ),
