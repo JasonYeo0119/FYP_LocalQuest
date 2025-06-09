@@ -25,6 +25,29 @@ class _HomepageState extends State<Homepage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Map<String, dynamic>? _nextUpcomingTrip;
   bool _isLoadingTrip = true;
+  final List<Map<String, dynamic>> items = [
+      {
+        "title": "Stay",
+        "icon": Icons.hotel_outlined,
+        "color": Colors.orange,
+      },
+      {
+        "title": "Transport",
+        "icon": Icons.train_outlined,
+        "color": Colors.purple,
+      },
+      {
+        "title": "Attractions",
+        "icon": Icons.park_outlined,
+        "color": Colors.blue,
+      },
+      {
+        "title": "Generate Itinerary",
+        "icon": Icons.dashboard_outlined,
+        "color": Colors.green,
+      }
+  ];
+
 
   @override
   void initState() {
@@ -233,42 +256,75 @@ class _HomepageState extends State<Homepage> {
             children: [
               // Main Service Buttons Grid
               Container(
-                height: screenHeight * 0.43,
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  physics: NeverScrollableScrollPhysics(),
-                  children: [
-                    _buildServiceCard(
-                      'Stay',
-                      Icons.hotel_outlined,
-                      [Color(0xFFFF4502), Color(0xFFFFFF00)],
-                      Colors.black54,
-                          () => _navigateToStay(),
-                    ),
-                    _buildServiceCard(
-                      'Transport',
-                      Icons.directions_train_outlined,
-                      [Color(0xFF7107F3), Color(0xFFFF02FA)],
-                      Colors.black54,
-                          () => _navigateToTransport(),
-                    ),
-                    _buildServiceCard(
-                      'Attractions',
-                      Icons.park_outlined,
-                      [Color(0xFF0C1FF7), Color(0xFF02BFFF)],
-                      Colors.black54,
-                          () => _navigateToAttraction(),
-                    ),
-                    _buildServiceCard(
-                      'Generate\nItinerary',
-                      Icons.dashboard_outlined,
-                      [Color(0xFF02ED64), Color(0xFFFFFA02)],
-                      Colors.black54,
-                          () => _navigateToAllinone(),
-                    ),
-                  ],
+                height: screenHeight * 0.47,
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.94,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Card(
+                      color: Colors.white,
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          // Navigate to different pages based on index
+                          switch (index) {
+                            case 0:
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Bookinghotelmain()));
+                              break;
+                            case 1:
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingtransportmain()));
+                              break;
+                            case 2:
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingattractionmain()));
+                              break;
+                            case 3:
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Bookingallinone()));
+                              break;
+                          }
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: item['color'].withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  item['icon'],
+                                  size: 40,
+                                  color: item['color'],
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                item['title'],
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.irishGrover(
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
 
