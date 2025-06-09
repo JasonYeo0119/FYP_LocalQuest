@@ -90,6 +90,7 @@ class AdminpageState extends State<Adminpage> {
                 itemBuilder: (context, index) {
                   final item = items[index];
                   return Card(
+                    color: Colors.white,
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
