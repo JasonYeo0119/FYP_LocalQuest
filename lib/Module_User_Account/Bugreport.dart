@@ -1,4 +1,7 @@
+import '../Model/bug.dart';
+import '../services/bug.dart';
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 class BugReport extends StatefulWidget {
   @override
@@ -13,7 +16,7 @@ class _BugReportState extends State<BugReport> {
   final _actualController = TextEditingController();
   final _emailController = TextEditingController();
 
-  String _selectedPriority = 'Medium';
+  String _selectedPriority = 'Low';
   String _selectedCategory = 'General';
   bool _isSubmitting = false;
 
@@ -38,39 +41,88 @@ class _BugReportState extends State<BugReport> {
     super.dispose();
   }
 
+  String _generateId() {
+    final random = Random();
+    final timestamp = DateTime
+        .now()
+        .millisecondsSinceEpoch;
+    final randomNum = random.nextInt(1000);
+    return 'BUG_${timestamp}_$randomNum';
+  }
+
   void _submitBugReport() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isSubmitting = true;
       });
 
-      // Simulate API call
-      await Future.delayed(Duration(seconds: 2));
+      try {
+        // Create bug report model
+        final bugReport = BugReportModel(
+          id: _generateId(),
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          expectedResult: _expectedController.text.trim(),
+          actualResult: _actualController.text.trim(),
+          priority: _selectedPriority,
+          category: _selectedCategory,
+          email: _emailController.text
+              .trim()
+              .isEmpty ? null : _emailController.text.trim(),
+          submittedAt: DateTime.now(),
+        );
+        Navigator.pop(context);
 
-      setState(() {
-        _isSubmitting = false;
-      });
+        // Save bug report
+        await BugReportService.instance.submitBugReport(bugReport);
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Bug report submitted successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
+        setState(() {
+          _isSubmitting = false;
+        });
 
-      // Clear form
-      _formKey.currentState!.reset();
-      _titleController.clear();
-      _descriptionController.clear();
-      _expectedController.clear();
-      _actualController.clear();
-      _emailController.clear();
-      setState(() {
-        _selectedPriority = 'Medium';
-        _selectedCategory = 'General';
-      });
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                      'Bug report submitted successfully!\nReport ID: ${bugReport
+                          .id}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+
+        // Clear form
+        _formKey.currentState!.reset();
+        _titleController.clear();
+        _descriptionController.clear();
+        _expectedController.clear();
+        _actualController.clear();
+        _emailController.clear();
+        setState(() {
+          _selectedPriority = 'Low';
+          _selectedCategory = 'General';
+        });
+      } catch (e) {
+        setState(() {
+          _isSubmitting = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error submitting bug report: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -88,7 +140,7 @@ class _BugReportState extends State<BugReport> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Colors.white,
+            color: Colors.grey[800],
           ),
         ),
         SizedBox(height: 8),
@@ -135,7 +187,7 @@ class _BugReportState extends State<BugReport> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.white,
+              color: Colors.grey[800],
             ),
             children: [
               if (required)
@@ -162,7 +214,9 @@ class _BugReportState extends State<BugReport> {
           ),
           validator: required
               ? (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (value == null || value
+                .trim()
+                .isEmpty) {
               return 'This field is required';
             }
             return null;
@@ -253,36 +307,33 @@ class _BugReportState extends State<BugReport> {
                     children: [
                       // Title
                       _buildTextField(
-                        label: 'Bug Title',
-                        controller: _titleController,
-                        hintText: 'Brief description of the issue',
+                          label: 'Bug Title',
+                          controller: _titleController,
+                          hintText: 'Brief description of the issue',
                       ),
-
                       SizedBox(height: 20),
-
-                      // Priority and Category Row
                       _buildDropdown(
-                              label: 'Priority',
-                              value: _selectedPriority,
-                              items: _priorities,
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedPriority = value!;
-                                });
-                              },
-                            ),
+                        label: 'Priority',
+                        value: _selectedPriority,
+                        items: _priorities,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPriority = value!;
+                          });
+                        },
+                      ),
                       SizedBox(height: 20),
 
                       _buildDropdown(
-                              label: 'Category',
-                              value: _selectedCategory,
-                              items: _categories,
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCategory = value!;
-                                });
-                              },
-                            ),
+                        label: 'Category',
+                        value: _selectedCategory,
+                        items: _categories,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategory = value!;
+                          });
+                        },
+                      ),
                       SizedBox(height: 20),
 
                       // Description
@@ -292,23 +343,23 @@ class _BugReportState extends State<BugReport> {
                         maxLines: 4,
                         hintText: 'Describe the bug in detail...',
                       ),
-
                       SizedBox(height: 20),
 
                       _buildTextField(
-                              label: 'Expected Result',
-                              controller: _expectedController,
-                              maxLines: 3,
-                              hintText: 'What should happen?',
-                            ),
-                          SizedBox(height: 20),
+                        label: 'Expected Result',
+                        controller: _expectedController,
+                        maxLines: 3,
+                        hintText: 'What should happen?',
+                      ),
+                      SizedBox(height: 20),
 
+                      // Actual Result
                       _buildTextField(
-                              label: 'Actual Result',
-                              controller: _actualController,
-                              maxLines: 3,
-                              hintText: 'What actually happened?',
-                            ),
+                        label: 'Actual Result',
+                        controller: _actualController,
+                        maxLines: 3,
+                        hintText: 'What actually happened?',
+                      ),
                       SizedBox(height: 20),
 
                       // Email (Optional)
@@ -317,7 +368,6 @@ class _BugReportState extends State<BugReport> {
                         controller: _emailController,
                         hintText: 'your.email@example.com (optional)',
                         required: false,
-                        keyboardType: TextInputType.emailAddress,
                       ),
 
                       SizedBox(height: 32),
