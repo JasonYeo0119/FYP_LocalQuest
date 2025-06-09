@@ -4,6 +4,7 @@ import 'package:localquest/Homepage.dart';
 import 'package:localquest/Module_Booking_Management/History.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
 import 'package:localquest/Module_Smart_Development/Chatbotpage.dart';
+import 'package:localquest/Module_User_Account/Bugreport.dart';
 import 'package:localquest/Module_User_Account/Favourite.dart';
 import 'package:localquest/Module_User_Account/Login.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,13 @@ import 'package:localquest/Module_User_Account/Profiledetails.dart';
 void Saved(BuildContext ctx) {
   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
     return Favourite();
+  }));
+}
+
+@override
+void Bug(BuildContext ctx) {
+  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+    return BugReport();
   }));
 }
 
@@ -322,6 +330,13 @@ class _ProfileState extends State<Profile> with TickerProviderStateMixin {
                 title: 'Chat with AI Chatbot',
                 onTap: () => Faq(context),
                 iconColor: Colors.purple,
+              ),
+
+              _buildProfileOption(
+                icon: Icons.bug_report,
+                title: 'Bug report',
+                onTap: () => Bug(context),
+                iconColor: Colors.orangeAccent,
               ),
 
               SizedBox(height: 30),

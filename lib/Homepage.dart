@@ -82,27 +82,56 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  // Updated to match History.dart logic
   DateTime _getRelevantDate(Map<String, dynamic> booking) {
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
     try {
-      if (booking['returnDate'] != null) {
-        return DateTime.parse(booking['returnDate']);
-      } else if (booking['departDate'] != null) {
-        return DateTime.parse(booking['departDate']);
+      if (bookingType == 'hotel') {
+        // For hotels, use check-out date as the relevant date
+        if (booking['checkOutDate'] != null) {
+          return DateTime.parse(booking['checkOutDate']);
+        } else if (booking['checkInDate'] != null) {
+          return DateTime.parse(booking['checkInDate']);
+        }
+      } else if (bookingType == 'attraction') {
+        // For attractions, use visitDate
+        if (booking['visitDate'] != null) {
+          return DateTime.parse(booking['visitDate']);
+        }
       } else {
-        return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
+        // For transport, use returnDate > departDate > bookingDate
+        if (booking['returnDate'] != null) {
+          return DateTime.parse(booking['returnDate']);
+        } else if (booking['departDate'] != null) {
+          return DateTime.parse(booking['departDate']);
+        }
       }
+
+      // Fallback to booking date
+      return DateTime.parse(booking['bookingDate'] ?? DateTime.now().toIso8601String());
     } catch (e) {
       return DateTime.now();
     }
   }
 
+  // Updated to match History.dart logic
   bool _isUpcoming(Map<String, dynamic> booking) {
     DateTime relevantDate = _getRelevantDate(booking);
     String status = booking['status']?.toString().toLowerCase() ?? 'pending';
 
+    // A booking is upcoming if:
+    // 1. The relevant date is in the future, OR
+    // 2. The status is confirmed/pending and the date hasn't passed by more than 1 day
     return relevantDate.isAfter(DateTime.now()) ||
         (status != 'completed' && status != 'cancelled' &&
             relevantDate.isAfter(DateTime.now().subtract(Duration(days: 1))));
+  }
+
+  // Helper method to check if it's a ferry booking
+  bool _isFerryBooking(Map<String, dynamic> booking) {
+    return booking['bookingType']?.toString().toLowerCase() == 'ferry' ||
+        booking['transportType']?.toString().toLowerCase() == 'ferry';
   }
 
   String _formatDate(String? dateString) {
@@ -137,6 +166,40 @@ class _HomepageState extends State<Homepage> {
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  // Get appropriate icon based on booking type
+  IconData _getBookingIcon(Map<String, dynamic> booking) {
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
+    if (bookingType == 'hotel') {
+      return Icons.hotel;
+    } else if (bookingType == 'attraction') {
+      return Icons.attractions;
+    } else if (bookingType == 'flight') {
+      return Icons.flight;
+    } else if (bookingType == 'ferry' || _isFerryBooking(booking)) {
+      return Icons.directions_boat;
+    } else {
+      return Icons.directions_bus;
+    }
+  }
+
+  // Get appropriate color based on booking type
+  Color _getBookingColor(Map<String, dynamic> booking) {
+    String bookingType = booking['bookingType']?.toString() ?? 'transport';
+
+    if (bookingType == 'hotel') {
+      return Color(0xFFFF4502);
+    } else if (bookingType == 'attraction') {
+      return Color(0xFF0C1FF7);
+    } else if (bookingType == 'flight') {
+      return Color(0xFF7107F3);
+    } else if (bookingType == 'ferry' || _isFerryBooking(booking)) {
+      return Color(0xFF0816A7);
+    } else {
+      return Color(0xFF0816A7);
     }
   }
 
@@ -373,7 +436,7 @@ class _HomepageState extends State<Homepage> {
     if (_isLoadingTrip) {
       return Container(
         width: double.infinity,
-        height: 100,
+        height: 120,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(17),
@@ -394,46 +457,54 @@ class _HomepageState extends State<Homepage> {
     }
 
     if (_nextUpcomingTrip == null) {
-      return Container(
-        width: double.infinity,
-        height: 100,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.schedule, color: Colors.grey[400], size: 32),
-              SizedBox(height: 8),
-              Text(
-                'No upcoming trips',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+      return GestureDetector(
+        onTap: () => _navigateToAllinone(), // Navigate to make booking
+        child: Container(
+          width: double.infinity,
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(17),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3F000000),
+                blurRadius: 4,
+                offset: Offset(0, 4),
               ),
             ],
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_circle_outline, color: Color(0xFF0816A7), size: 40),
+                SizedBox(height: 8),
+                Text(
+                  'No upcoming trips',
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Tap to start planning your adventure!',
+                  style: TextStyle(
+                    color: Color(0xFF0816A7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     final trip = _nextUpcomingTrip!;
-    final transportName = trip['transport']?['name'] ?? 'Transport';
-    final departDate = _formatDate(trip['departDate']);
-    final departTime = trip['selectedTime'] ?? _formatTime(trip['departDate']);
-    final seats = trip['selectedSeats']?.isNotEmpty == true ? trip['selectedSeats'].join(', ') : 'N/A';
-    final status = trip['status'] ?? 'pending';
+    String bookingType = trip['bookingType']?.toString() ?? 'transport';
 
     return GestureDetector(
       onTap: () => _navigateToHistory(),
@@ -455,29 +526,51 @@ class _HomepageState extends State<Homepage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Icon(
+                  _getBookingIcon(trip),
+                  color: _getBookingColor(trip),
+                  size: 24,
+                ),
+                SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    transportName,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getBookingTitle(trip),
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        _getBookingSubtitle(trip),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
+                    color: _getStatusColor(trip['status'] ?? 'pending').withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _getStatusColor(status)),
+                    border: Border.all(color: _getStatusColor(trip['status'] ?? 'pending')),
                   ),
                   child: Text(
-                    status.toUpperCase(),
+                    (trip['status'] ?? 'pending').toUpperCase(),
                     style: TextStyle(
-                      color: _getStatusColor(status),
+                      color: _getStatusColor(trip['status'] ?? 'pending'),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -485,22 +578,29 @@ class _HomepageState extends State<Homepage> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Text(
-              '$departDate - $departTime - Seat $seats',
+              _getBookingDetails(trip),
               style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
+                color: Colors.grey[700],
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 4),
-            Text(
-              'View Details',
-              style: TextStyle(
-                color: Color(0xFF0181F9),
-                fontSize: 12,
-                decoration: TextDecoration.underline,
-              ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'View Details →',
+                  style: TextStyle(
+                    color: Color(0xFF0181F9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -508,7 +608,74 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
+  String _getBookingTitle(Map<String, dynamic> trip) {
+    String bookingType = trip['bookingType']?.toString() ?? 'transport';
 
+    if (bookingType == 'hotel') {
+      return trip['hotel']?['name'] ?? 'Hotel Booking';
+    } else if (bookingType == 'attraction') {
+      return trip['attraction']?['name'] ?? 'Attraction Ticket';
+    } else if (bookingType == 'flight') {
+      return '${trip['airline'] ?? 'Flight'} ${trip['flightNumber'] ?? ''}';
+    } else if (bookingType == 'ferry' || _isFerryBooking(trip)) {
+      return trip['transport']?['name'] ?? 'Ferry Service';
+    } else {
+      return trip['transport']?['name'] ?? 'Transport Booking';
+    }
+  }
+
+  String _getBookingSubtitle(Map<String, dynamic> trip) {
+    String bookingType = trip['bookingType']?.toString() ?? 'transport';
+
+    if (bookingType == 'hotel') {
+      return trip['hotel']?['address'] ?? 'Hotel Stay';
+    } else if (bookingType == 'attraction') {
+      String city = trip['attraction']?['city'] ?? '';
+      String state = trip['attraction']?['state'] ?? '';
+      return city.isNotEmpty && state.isNotEmpty ? '$city, $state' : 'Attraction Visit';
+    } else if (bookingType == 'flight') {
+      return trip['route'] ?? '${trip['transport']?['origin'] ?? ''} → ${trip['transport']?['destination'] ?? ''}';
+    } else if (bookingType == 'ferry' || _isFerryBooking(trip)) {
+      return '${trip['transport']?['origin'] ?? ''} → ${trip['transport']?['destination'] ?? ''}';
+    } else {
+      return '${trip['transport']?['origin'] ?? ''} → ${trip['transport']?['destination'] ?? ''}';
+    }
+  }
+
+  String _getBookingDetails(Map<String, dynamic> trip) {
+    String bookingType = trip['bookingType']?.toString() ?? 'transport';
+
+    if (bookingType == 'hotel') {
+      String checkInDate = _formatDate(trip['checkInDate']);
+      String checkOutDate = _formatDate(trip['checkOutDate']);
+      int nights = trip['numberOfNights'] ?? 1;
+      return 'Check-in: $checkInDate • Check-out: $checkOutDate • $nights night${nights > 1 ? 's' : ''}';
+    } else if (bookingType == 'attraction') {
+      String visitDate = _formatDate(trip['visitDate']);
+      return 'Visit Date: $visitDate';
+    } else if (bookingType == 'flight') {
+      String departDate = _formatDate(trip['departDate']);
+      String departureTime = trip['departureTime'] ?? '';
+      String arrivalTime = trip['arrivalTime'] ?? '';
+      String timeInfo = departureTime.isNotEmpty && arrivalTime.isNotEmpty
+          ? ' • $departureTime - $arrivalTime'
+          : '';
+      return 'Departure: $departDate$timeInfo';
+    } else if (bookingType == 'ferry' || _isFerryBooking(trip)) {
+      String departDate = _formatDate(trip['departDate']);
+      String selectedTime = trip['selectedTime'] ?? '';
+      int passengers = trip['ferryNumberOfPax'] ?? 1;
+      String timeInfo = selectedTime.isNotEmpty ? ' • $selectedTime' : '';
+      return 'Travel Date: $departDate$timeInfo • $passengers passenger${passengers > 1 ? 's' : ''}';
+    } else {
+      String departDate = _formatDate(trip['departDate']);
+      String selectedTime = trip['selectedTime'] ?? '';
+      String seats = trip['selectedSeats']?.isNotEmpty == true ? trip['selectedSeats'].join(', ') : '';
+      String timeInfo = selectedTime.isNotEmpty ? ' • $selectedTime' : '';
+      String seatInfo = seats.isNotEmpty ? ' • Seat $seats' : '';
+      return 'Departure: $departDate$timeInfo$seatInfo';
+    }
+  }
 
   Widget _buildBottomNavItem(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
@@ -563,5 +730,4 @@ class _HomepageState extends State<Homepage> {
   void _navigateToViewItinerary() {
     Navigator.push(context, MaterialPageRoute(builder: (context) => ViewItineraryPage()));
   }
-
 }
