@@ -59,30 +59,77 @@ class _TransportCardState extends State<TransportCard> {
       totalPrice = basePrice * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
     }
 
+    // Get availability status for cars
+    bool isCarAvailable = widget.transport['additionalInfo']?['isAvailable'] ?? true;
+    String availabilityStatus = widget.transport['additionalInfo']?['availabilityStatus'] ?? 'Available';
+
     return Card(
       elevation: 4,
       margin: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Transport Image
+          // Transport Image with Availability Overlay for Cars
           if (widget.transport['imageUrl'] != null &&
               widget.transport['imageUrl'].toString().isNotEmpty)
-            Container(
-              height: 200,
-              width: double.infinity,
-              child: Image.network(
-                widget.transport['imageUrl'].toString(),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: Center(
-                      child: Icon(Icons.image_not_supported, size: 50),
+            Stack(
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  child: Image.network(
+                    widget.transport['imageUrl'].toString(),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: Icon(Icons.image_not_supported, size: 50),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Availability Status Overlay for Cars
+                if (widget.transport['type']?.toString().toLowerCase() == 'car')
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isCarAvailable ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isCarAvailable ? Icons.check_circle : Icons.cancel,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            availabilityStatus,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
           Padding(
             padding: EdgeInsets.all(16),
@@ -123,6 +170,52 @@ class _TransportCardState extends State<TransportCard> {
                     ),
                   ],
                 ),
+
+                // Car Availability Status (Alternative placement if no image)
+                if (widget.transport['type']?.toString().toLowerCase() == 'car' &&
+                    (widget.transport['imageUrl'] == null || widget.transport['imageUrl'].toString().isEmpty)) ...[
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isCarAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isCarAvailable ? Colors.green : Colors.red,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isCarAvailable ? Icons.check_circle : Icons.cancel,
+                          color: isCarAvailable ? Colors.green : Colors.red,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          availabilityStatus,
+                          style: TextStyle(
+                            color: isCarAvailable ? Colors.green[800] : Colors.red[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Spacer(),
+                        if (widget.transport['searchDates'] != null) ...[
+                          Text(
+                            'For ${widget.transport['searchDates']}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+
                 SizedBox(height: 8),
 
                 // Price information
@@ -535,6 +628,47 @@ class _TransportCardState extends State<TransportCard> {
                     ),
                   ),
                 ),
+
+                // Not Available Message for Cars
+                if (widget.transport['type']?.toString().toLowerCase() == 'car' && !isCarAvailable) ...[
+                  SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[300]!),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'This car is not available for your selected dates.',
+                                style: TextStyle(
+                                  color: Colors.orange[800],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Try selecting different dates to check availability.',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -563,6 +697,12 @@ class _TransportCardState extends State<TransportCard> {
   }
 
   bool _canBookNow() {
+    // For cars, check availability status
+    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
+      bool isCarAvailable = widget.transport['isAvailable'] ?? true;
+      return isCarAvailable; // Only allow booking if car is available
+    }
+
     List<String> timeSlots = [];
     if (widget.transport['timeSlots'] is List) {
       timeSlots = List<String>.from(widget.transport['timeSlots']);
@@ -571,11 +711,6 @@ class _TransportCardState extends State<TransportCard> {
     List<int> availableSeats = [];
     if (widget.transport['availableSeats'] is List) {
       availableSeats = List<int>.from(widget.transport['availableSeats']);
-    }
-
-    // For cars, no seat or time selection required
-    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
-      return true;
     }
 
     // If transport has time slots, user must select time
@@ -592,6 +727,16 @@ class _TransportCardState extends State<TransportCard> {
   }
 
   String _getBookButtonText() {
+    // For cars, check availability
+    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
+      bool isCarAvailable = widget.transport['isAvailable'] ?? true;
+      if (!isCarAvailable) {
+        return 'Not Available';
+      }
+      double totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (widget.numberOfDays ?? 1);
+      return 'Book Now - MYR ${totalPrice.toStringAsFixed(2)}';
+    }
+
     List<String> timeSlots = [];
     if (widget.transport['timeSlots'] is List) {
       timeSlots = List<String>.from(widget.transport['timeSlots']);
@@ -600,12 +745,6 @@ class _TransportCardState extends State<TransportCard> {
     List<int> availableSeats = [];
     if (widget.transport['availableSeats'] is List) {
       availableSeats = List<int>.from(widget.transport['availableSeats']);
-    }
-
-    // For cars
-    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
-      double totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (widget.numberOfDays ?? 1);
-      return 'Book Now - MYR ${totalPrice.toStringAsFixed(2)}';
     }
 
     // For ferries
@@ -646,6 +785,20 @@ class _TransportCardState extends State<TransportCard> {
   }
 
   void _navigateToPayment(BuildContext context) {
+    // For cars, check availability one more time before navigation
+    if (widget.transport['type']?.toString().toLowerCase() == 'car') {
+      bool isCarAvailable = widget.transport['isAvailable'] ?? true;
+      if (!isCarAvailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('This car is not available for your selected dates.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     double totalPrice;
 
     // Calculate total price based on transport type

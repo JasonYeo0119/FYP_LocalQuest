@@ -570,44 +570,64 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
       // Normalize dates to remove time component (use only date part)
       DateTime startDate = DateTime(departDate.year, departDate.month, departDate.day);
-      DateTime endDate = returnDate != null
-          ? DateTime(returnDate.year, returnDate.month, returnDate.day)
-          : startDate;
 
-      // For car rentals, both start and end dates should be blocked
-      // Example: Book from June 17-18, both dates are unavailable
+      // FIXED: Calculate end date properly based on numberOfDays if returnDate is null
+      DateTime endDate;
+      if (returnDate != null) {
+        endDate = DateTime(returnDate.year, returnDate.month, returnDate.day);
+      } else if (widget.numberOfDays != null) {
+        // If booking for N days starting on departDate, end date is (departDate + N-1 days)
+        // Example: 2 days starting June 17 = June 17 + June 18 (so endDate = June 18)
+        endDate = startDate.add(Duration(days: widget.numberOfDays! - 1));
+      } else {
+        endDate = startDate; // Single day booking
+      }
+
+      print('=== CAR AVAILABILITY UPDATE ===');
+      print('Start Date: $startDate');
+      print('End Date: $endDate');
+      print('Number of days: ${widget.numberOfDays}');
+      print('Return Date provided: $returnDate');
+
+      // For car rentals, include all dates from start to end (inclusive)
       DateTime currentDate = startDate;
 
-      // Include both start date and end date in the blocking
+      // FIXED: Use proper inclusive range
       while (currentDate.isBefore(endDate.add(Duration(days: 1)))) {
         String dateKey = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
         unavailableDates.add(dateKey);
         currentDate = currentDate.add(Duration(days: 1));
       }
 
-      print('Blocking car dates: $unavailableDates'); // Debug print
+      print('Dates to block: $unavailableDates');
 
-      // Update car availability for each date using transaction for safety
+      // Update car availability for each date
       for (String dateKey in unavailableDates) {
         await carRef.child('unavailableDates').child(dateKey).set({
           'isBlocked': true,
           'bookedAt': DateTime.now().toIso8601String(),
-          'bookingType': 'rental'
+          'bookingType': 'rental',
+          'numberOfDays': widget.numberOfDays,
+          'bookingStartDate': startDate.toIso8601String(),
+          'bookingEndDate': endDate.toIso8601String(),
         });
+        print('✅ Blocked date: $dateKey');
       }
 
-      // Update the car's booking status
+      // Update the car's booking status with CORRECT dates
       await carRef.update({
         'isCurrentlyBooked': true,
         'currentBookingStart': startDate.toIso8601String(),
         'currentBookingEnd': endDate.toIso8601String(),
         'lastBookedAt': DateTime.now().toIso8601String(),
         'totalBlockedDates': unavailableDates.length,
+        'bookingDuration': widget.numberOfDays ?? 1,
       });
 
       print('Car availability updated successfully for car: $carId');
       print('Blocked dates: $unavailableDates');
-      print('Start: ${startDate.toIso8601String()}, End: ${endDate.toIso8601String()}');
+      print('Booking period: ${startDate.toIso8601String()} to ${endDate.toIso8601String()}');
+      print('=============================');
 
     } catch (e) {
       print('Error updating car availability: $e');
@@ -637,6 +657,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         print('Car booking status: ${carData['isCurrentlyBooked']}');
         print('Current booking start: ${carData['currentBookingStart']}');
         print('Current booking end: ${carData['currentBookingEnd']}');
+        print('Booking duration: ${carData['bookingDuration']}');
+        print('Total blocked dates: ${carData['totalBlockedDates']}');
       }
       print('=====================================');
     } catch (e) {
@@ -833,11 +855,19 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
       String carId = widget.transport!['id'] ?? widget.transport!['plateNumber'];
       DatabaseReference carRef = _database.child('cars').child(carId);
 
-      // Normalize dates to remove time component
+      // Normalize dates to remove time component - SAME LOGIC AS BOOKING
       DateTime startDate = DateTime(widget.departDate!.year, widget.departDate!.month, widget.departDate!.day);
-      DateTime endDate = widget.returnDate != null
-          ? DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day)
-          : startDate;
+
+      // Calculate end date properly based on numberOfDays (same as booking logic)
+      DateTime endDate;
+      if (widget.returnDate != null) {
+        endDate = DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day);
+      } else if (widget.numberOfDays != null) {
+        // If booking for N days starting on departDate, end date is (departDate + N-1 days)
+        endDate = startDate.add(Duration(days: widget.numberOfDays! - 1));
+      } else {
+        endDate = startDate; // Single day booking
+      }
 
       // Check each date in the booking period (inclusive of both start and end)
       DateTime currentDate = startDate;
@@ -849,10 +879,12 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         if (snapshot.exists) {
           // Check if the date is blocked
           if (snapshot.value is bool && snapshot.value == true) {
+            print('❌ Car validation failed - blocked on $dateKey (old structure)');
             return false; // Car is not available for this date (old structure)
           } else if (snapshot.value is Map) {
             Map<String, dynamic> dateData = Map<String, dynamic>.from(snapshot.value as Map);
             if (dateData['isBlocked'] == true) {
+              print('❌ Car validation failed - blocked on $dateKey (new structure)');
               return false; // Car is not available for this date (new structure)
             }
           }
@@ -861,9 +893,10 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         currentDate = currentDate.add(Duration(days: 1));
       }
 
+      print('✅ Car validation passed - available for all requested dates');
       return true; // Car is available for all requested dates
     } catch (e) {
-      print('Error validating car availability: $e');
+      print('❌ Error validating car availability: $e');
       return false; // Err on the side of caution
     }
   }
@@ -883,6 +916,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
       print('Error rolling back availability updates: $e');
     }
   }
+
 
   Future<void> _rollbackBusSeats() async {
     try {
@@ -929,11 +963,19 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
       String carId = widget.transport!['id'] ?? widget.transport!['plateNumber'];
       DatabaseReference carRef = _database.child('cars').child(carId);
 
-      // Normalize dates to remove time component
+      // Normalize dates to remove time component - SAME LOGIC AS BOOKING
       DateTime startDate = DateTime(widget.departDate!.year, widget.departDate!.month, widget.departDate!.day);
-      DateTime endDate = widget.returnDate != null
-          ? DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day)
-          : startDate;
+
+      // Calculate end date properly based on numberOfDays (same as booking logic)
+      DateTime endDate;
+      if (widget.returnDate != null) {
+        endDate = DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day);
+      } else if (widget.numberOfDays != null) {
+        // If booking for N days starting on departDate, end date is (departDate + N-1 days)
+        endDate = startDate.add(Duration(days: widget.numberOfDays! - 1));
+      } else {
+        endDate = startDate; // Single day booking
+      }
 
       // Calculate dates to restore (same logic as blocking)
       List<String> datesToRestore = [];
@@ -944,6 +986,8 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         datesToRestore.add(dateKey);
         currentDate = currentDate.add(Duration(days: 1));
       }
+
+      print('🔄 Rolling back car availability for dates: $datesToRestore');
 
       // Remove unavailable dates
       for (String dateKey in datesToRestore) {
@@ -956,12 +1000,13 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
         'currentBookingStart': null,
         'currentBookingEnd': null,
         'totalBlockedDates': null,
+        'bookingDuration': null,
       });
 
-      print('Rolled back car availability for dates: $datesToRestore');
+      print('✅ Rolled back car availability for dates: $datesToRestore');
 
     } catch (e) {
-      print('Error rolling back car availability: $e');
+      print('❌ Error rolling back car availability: $e');
     }
   }
 
