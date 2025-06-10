@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../Model/transport.dart';
 import '../Model/flight.dart';
 import '../widgets/transport_card.dart';
-import '../widgets/flight_card.dart'; // You'll need to create this
+import '../widgets/flight_card.dart';
 import '../services/transport_service.dart';
 import '../services/mock_flight_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class TransportSearchResultsScreen extends StatefulWidget {
   final List<Transport> transports; // May be empty - we'll fetch data here
@@ -41,6 +42,9 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
   List<Flight> _flightResults = [];
   bool _isLoading = true;
   String _errorMessage = '';
+
+  // Add Firebase database reference
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   @override
   void initState() {
@@ -121,29 +125,95 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
     }
   }
 
+  // NEW: Check if a car is available for the requested dates
+  Future<bool> _isCarAvailable(String carId, DateTime startDate, DateTime? endDate) async {
+    try {
+      // Normalize dates to remove time component
+      DateTime normalizedStartDate = DateTime(startDate.year, startDate.month, startDate.day);
+      DateTime normalizedEndDate = endDate != null
+          ? DateTime(endDate.year, endDate.month, endDate.day)
+          : normalizedStartDate;
+
+      // Calculate all dates in the booking period
+      List<String> requestedDates = [];
+      DateTime currentDate = normalizedStartDate;
+
+      while (currentDate.isBefore(normalizedEndDate.add(Duration(days: 1)))) {
+        String dateKey = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+        requestedDates.add(dateKey);
+        currentDate = currentDate.add(Duration(days: 1));
+      }
+
+      print('Checking car availability for $carId on dates: $requestedDates');
+
+      // Check Firebase for unavailable dates
+      DatabaseReference carRef = _database.child('cars').child(carId);
+      DataSnapshot snapshot = await carRef.child('unavailableDates').get();
+
+      if (snapshot.exists) {
+        Map<String, dynamic> unavailableDates = Map<String, dynamic>.from(snapshot.value as Map);
+
+        // Check if any requested date is blocked
+        for (String requestedDate in requestedDates) {
+          if (unavailableDates.containsKey(requestedDate)) {
+            var dateData = unavailableDates[requestedDate];
+
+            // Check both old structure (boolean) and new structure (object with isBlocked)
+            bool isBlocked = false;
+            if (dateData is bool && dateData == true) {
+              isBlocked = true;
+            } else if (dateData is Map && dateData['isBlocked'] == true) {
+              isBlocked = true;
+            }
+
+            if (isBlocked) {
+              print('Car $carId is not available on $requestedDate');
+              return false;
+            }
+          }
+        }
+      }
+
+      print('Car $carId is available for all requested dates');
+      return true;
+    } catch (e) {
+      print('Error checking car availability for $carId: $e');
+      // In case of error, assume car is not available to be safe
+      return false;
+    }
+  }
+
   Future<List<Transport>> _fetchCarInformation() async {
     try {
       print('Fetching car information...');
       print('Location: ${widget.carLocation}');
       print('Booking Date: ${widget.departDate}');
       print('Number of Days: ${widget.numberOfDays}');
+      print('Return Date: ${widget.returnDate}');
+
+      // Calculate return date if not provided
+      DateTime? effectiveReturnDate = widget.returnDate;
+      if (effectiveReturnDate == null && widget.numberOfDays != null) {
+        effectiveReturnDate = widget.departDate.add(Duration(days: widget.numberOfDays! - 1));
+      }
 
       // Get all cars from the database
       List<Transport> allCars = await TransportService.getTransportsByType('Car');
       print('Found ${allCars.length} cars in database');
 
       // Filter cars based on availability and location
-      List<Transport> availableCars = allCars.where((car) {
+      List<Transport> availableCars = [];
+
+      for (Transport car in allCars) {
         print('Checking car: ${car.name}');
 
         // Check if car is not hidden
         if (car.isHidden) {
           print('Car ${car.name} is hidden');
-          return false;
+          continue;
         }
 
         // For cars, check if the location matches
-        // Cars use 'location' field instead of 'origin'
         String carLocationFromDB = '';
 
         // Try to get location from additionalInfo first, then from origin
@@ -162,31 +232,44 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
 
         if (!locationMatch) {
           print('Car ${car.name} location does not match');
-          return false;
+          continue;
         }
 
-        // Check if car is available on the selected date (if operating days are specified)
+        // Check if car is available on the selected day (if operating days are specified)
         if (car.operatingDays.isNotEmpty) {
           String selectedDay = _getDayName(widget.departDate.weekday);
           bool isAvailableOnDay = car.operatingDays.contains(selectedDay);
           if (!isAvailableOnDay) {
             print('Car ${car.name} not available on $selectedDay');
-            return false;
+            continue;
           }
         }
 
+        // NEW: Check car availability against Firebase booking data
+        String carId = car.id;
+        if (carId.isEmpty) {
+          // If no ID, try to use name or plate number as identifier
+          carId = car.additionalInfo?['plateNumber']?.toString() ?? car.name;
+        }
+
+        bool isAvailable = await _isCarAvailable(carId, widget.departDate, effectiveReturnDate);
+        if (!isAvailable) {
+          print('Car ${car.name} is already booked for the requested dates');
+          continue;
+        }
+
         print('Car ${car.name} is available');
-        return true;
-      }).toList();
+        availableCars.add(car);
+      }
 
       print('Filtered to ${availableCars.length} available cars');
 
-      // If no cars found with location matching, try a broader search
+      // If no cars found with exact location matching, try a broader search
       if (availableCars.isEmpty) {
         print('No cars found with exact location match, trying broader search...');
 
-        availableCars = allCars.where((car) {
-          if (car.isHidden) return false;
+        for (Transport car in allCars) {
+          if (car.isHidden) continue;
 
           // Try to match any part of the location
           String searchLocation = widget.carLocation ?? widget.origin;
@@ -202,18 +285,30 @@ class _TransportSearchResultsScreenState extends State<TransportSearchResultsScr
           List<String> searchParts = searchLocation.split(',');
           List<String> carParts = carLocationFromDB.split(',');
 
+          bool foundMatch = false;
           for (String searchPart in searchParts) {
             for (String carPart in carParts) {
               if (searchPart.trim().toLowerCase().contains(carPart.trim().toLowerCase()) ||
                   carPart.trim().toLowerCase().contains(searchPart.trim().toLowerCase())) {
-                print('Found match: ${car.name} - $carLocationFromDB matches $searchLocation');
-                return true;
+
+                // Still need to check availability even for broader search
+                String carId = car.id;
+                if (carId.isEmpty) {
+                  carId = car.additionalInfo?['plateNumber']?.toString() ?? car.name;
+                }
+
+                bool isAvailable = await _isCarAvailable(carId, widget.departDate, effectiveReturnDate);
+                if (isAvailable) {
+                  print('Found match: ${car.name} - $carLocationFromDB matches $searchLocation');
+                  availableCars.add(car);
+                  foundMatch = true;
+                  break;
+                }
               }
             }
+            if (foundMatch) break;
           }
-
-          return false;
-        }).toList();
+        }
 
         print('Broader search found ${availableCars.length} cars');
       }

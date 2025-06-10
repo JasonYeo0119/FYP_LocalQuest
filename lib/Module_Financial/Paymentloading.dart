@@ -266,6 +266,9 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
           'bookingType': _getBookingType(),
         };
 
+        // Define transportData at the beginning for availability updates
+        Map<String, dynamic> transportData = Map<String, dynamic>.from(widget.transport ?? {});
+
         // Add booking-specific data
         if (isHotelBooking) {
           // Hotel booking data with multiple room types information
@@ -317,7 +320,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
                 .toList();
             bookingData['roomTypeNames'] = roomTypeNames;
           }
-
         } else if (isAttractionBooking) {
           // Attraction booking data
           bookingData.addAll({
@@ -332,8 +334,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             'visitDate': widget.visitDate?.toIso8601String(),
           });
         } else {
-          Map<String, dynamic> transportData = Map<String, dynamic>.from(
-              widget.transport ?? {});
           // Transport booking data
           bookingData.addAll({
             'transport': widget.transport,
@@ -343,6 +343,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             'returnDate': widget.returnDate?.toIso8601String(),
             'numberOfDays': widget.numberOfDays,
           });
+
           if (isFlightBooking) {
             bookingData.addAll({
               'flightNumber': transportData['flightNumber'],
@@ -358,9 +359,9 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               'leadPassengerData': widget.leadPassengerData,
               'numberOfPassengers': widget.passengerData?.length ?? 0,
               'additionalCosts': widget.additionalCosts,
-              'basePriceBeforeAddons': widget.totalPrice -
-                  widget.additionalCosts,
+              'basePriceBeforeAddons': widget.totalPrice - widget.additionalCosts,
             });
+
             // Calculate add-on summary for Firebase
             if (widget.passengerData != null) {
               int checkedBaggageCount = 0;
@@ -420,19 +421,54 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               'ferryTicketType': widget.ferryTicketType,
               'ferryNumberOfPax': widget.ferryNumberOfPax,
               'numberOfPassengers': widget.ferryNumberOfPax,
-              // Store passenger count explicitly
               'route': '${transportData['origin']} → ${transportData['destination']}',
-              // Store base price from transport data for reference
               'basePricePerPassenger': transportData['price'] ?? 0.0,
               'totalCalculatedPrice': widget.totalPrice,
             });
 
-            // Set booking type for ferry
             bookingData['bookingType'] = 'ferry';
             bookingData['transportType'] = 'ferry';
           }
         }
 
+        // === NEW: Update availability before saving booking ===
+
+        // Check if it's a bus booking and update seat availability
+        if (widget.transport != null &&
+            widget.transport!['type']?.toString().toLowerCase() == 'bus' &&
+            widget.selectedSeats.isNotEmpty &&
+            widget.selectedTime != null &&
+            widget.departDate != null) {
+
+          await _updateBusSeatsAvailability(
+            transportData['id'] ?? transportData['name'], // Bus ID or name
+            widget.selectedTime!,
+            widget.departDate!,
+            widget.selectedSeats,
+          );
+        }
+
+        // Check if it's a car booking and update car availability
+        if (widget.transport != null &&
+            widget.transport!['type']?.toString().toLowerCase() == 'car' &&
+            widget.departDate != null) {
+
+          String carId = transportData['id'] ?? transportData['plateNumber'];
+          print('=== BOOKING CAR: $carId ===');
+          print('Depart Date: ${widget.departDate}');
+          print('Return Date: ${widget.returnDate}');
+
+          await _updateCarAvailability(
+            carId,
+            widget.departDate!,
+            widget.returnDate,
+          );
+
+          // Debug: Check what was actually saved
+          await _debugCarAvailability(carId);
+        }
+
+        // Save booking data to Firebase
         await _database.child('users').child(userId).child('bookings').child(bookingId).set(bookingData);
         await _database.child('bookings').child(bookingId).set(bookingData);
         String collectionName = _getCollectionName();
@@ -456,14 +492,161 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
           print('QR Code generated and saved successfully for booking: $bookingId');
         }
-
       } else {
         print('No user logged in');
       }
     } catch (e) {
       print('Error saving booking: $e');
+      rethrow; // Re-throw the error so the calling method can handle it
     }
   }
+
+  Future<void> _updateBusSeatsAvailability(
+      String busId,
+      String selectedTime,
+      DateTime departDate,
+      List<int> selectedSeats,
+      ) async {
+    try {
+      String dateKey = "${departDate.year}-${departDate.month.toString().padLeft(2, '0')}-${departDate.day.toString().padLeft(2, '0')}";
+
+      // Reference to the bus document
+      DatabaseReference busRef = _database.child('buses').child(busId);
+
+      // Use transaction to ensure atomic updates
+      await busRef.child('timeSlots').child(selectedTime).child('bookedSeats').child(dateKey).runTransaction((Object? bookedSeatsData) {
+        List<int> currentBookedSeats = [];
+
+        if (bookedSeatsData != null) {
+          // Parse existing booked seats
+          if (bookedSeatsData is List) {
+            currentBookedSeats = bookedSeatsData.cast<int>();
+          } else if (bookedSeatsData is Map) {
+            // Handle case where it might be stored as a map
+            currentBookedSeats = bookedSeatsData.values.cast<int>().toList();
+          }
+        }
+
+        // Add the newly booked seats
+        currentBookedSeats.addAll(selectedSeats);
+
+        // Remove duplicates and sort
+        currentBookedSeats = currentBookedSeats.toSet().toList()..sort();
+
+        return Transaction.success(currentBookedSeats);
+      });
+
+      // Also update the available seats count
+      await busRef.child('timeSlots').child(selectedTime).child('availableSeats').child(dateKey).runTransaction((Object? availableSeatsData) {
+        int currentAvailableSeats = availableSeatsData as int? ?? 33; // Default total seats
+        int newAvailableSeats = currentAvailableSeats - selectedSeats.length;
+
+        // Ensure it doesn't go below 0
+        newAvailableSeats = newAvailableSeats < 0 ? 0 : newAvailableSeats;
+
+        return Transaction.success(newAvailableSeats);
+      });
+
+      print('Bus seats updated successfully for bus: $busId, time: $selectedTime, date: $dateKey');
+      print('Booked seats: $selectedSeats');
+
+    } catch (e) {
+      print('Error updating bus seats availability: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _updateCarAvailability(
+      String carId,
+      DateTime departDate,
+      DateTime? returnDate,
+      ) async {
+    try {
+      // Reference to the car document
+      DatabaseReference carRef = _database.child('cars').child(carId);
+
+      // Calculate all dates the car will be unavailable
+      List<String> unavailableDates = [];
+
+      // Normalize dates to remove time component (use only date part)
+      DateTime startDate = DateTime(departDate.year, departDate.month, departDate.day);
+      DateTime endDate = returnDate != null
+          ? DateTime(returnDate.year, returnDate.month, returnDate.day)
+          : startDate;
+
+      // For car rentals, both start and end dates should be blocked
+      // Example: Book from June 17-18, both dates are unavailable
+      DateTime currentDate = startDate;
+
+      // Include both start date and end date in the blocking
+      while (currentDate.isBefore(endDate.add(Duration(days: 1)))) {
+        String dateKey = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+        unavailableDates.add(dateKey);
+        currentDate = currentDate.add(Duration(days: 1));
+      }
+
+      print('Blocking car dates: $unavailableDates'); // Debug print
+
+      // Update car availability for each date using transaction for safety
+      for (String dateKey in unavailableDates) {
+        await carRef.child('unavailableDates').child(dateKey).set({
+          'isBlocked': true,
+          'bookedAt': DateTime.now().toIso8601String(),
+          'bookingType': 'rental'
+        });
+      }
+
+      // Update the car's booking status
+      await carRef.update({
+        'isCurrentlyBooked': true,
+        'currentBookingStart': startDate.toIso8601String(),
+        'currentBookingEnd': endDate.toIso8601String(),
+        'lastBookedAt': DateTime.now().toIso8601String(),
+        'totalBlockedDates': unavailableDates.length,
+      });
+
+      print('Car availability updated successfully for car: $carId');
+      print('Blocked dates: $unavailableDates');
+      print('Start: ${startDate.toIso8601String()}, End: ${endDate.toIso8601String()}');
+
+    } catch (e) {
+      print('Error updating car availability: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _debugCarAvailability(String carId) async {
+    try {
+      DatabaseReference carRef = _database.child('cars').child(carId);
+      DataSnapshot snapshot = await carRef.child('unavailableDates').get();
+
+      print('=== DEBUG: Car Availability for $carId ===');
+      if (snapshot.exists) {
+        Map<String, dynamic> unavailableDates = Map<String, dynamic>.from(snapshot.value as Map);
+        unavailableDates.forEach((date, data) {
+          print('Date: $date -> $data');
+        });
+      } else {
+        print('No unavailable dates found');
+      }
+
+      // Also check booking status
+      DataSnapshot statusSnapshot = await carRef.get();
+      if (statusSnapshot.exists) {
+        Map<String, dynamic> carData = Map<String, dynamic>.from(statusSnapshot.value as Map);
+        print('Car booking status: ${carData['isCurrentlyBooked']}');
+        print('Current booking start: ${carData['currentBookingStart']}');
+        print('Current booking end: ${carData['currentBookingEnd']}');
+      }
+      print('=====================================');
+    } catch (e) {
+      print('Error debugging car availability: $e');
+    }
+  }
+
+// Helper method to check if transport is bus or car
+  bool get isBusBooking => widget.transport?['type']?.toString().toLowerCase() == 'bus';
+  bool get isCarBooking => widget.transport?['type']?.toString().toLowerCase() == 'car';
 
   String _getBookingType() {
     if (isHotelBooking) return 'hotel';
@@ -482,32 +665,82 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   }
 
   void _verifyCardNumberAndNavigate() async {
-    // Remove any spaces or formatting from the card details for comparison
-    String cleanCardNumber = widget.cardNumber.replaceAll(' ', '').replaceAll('-', '');
-    String cleanExpiry = widget.expiry.replaceAll(' ', '').replaceAll('-', '').replaceAll('/', '');
-    String cleanCvv = widget.cvv.replaceAll(' ', '').replaceAll('-', '');
+    try {
+      // First validate availability before processing payment
+      bool isSeatAvailable = await _validateSeatAvailability();
+      bool isCarAvailable = await _validateCarAvailability();
 
-    // Check if all card details match the valid ones
-    bool isValidCard = cleanCardNumber == VALID_CARD_NUMBER;
-    bool isValidDate = cleanExpiry == VALID_CARD_DATE;
-    bool isValidCvv = cleanCvv == VALID_CARD_CVV;
+      if (!isSeatAvailable) {
+        // Show error dialog for seat unavailability
+        _showAvailabilityError('Selected seats are no longer available. Please select different seats.');
+        return;
+      }
 
-    if (isValidCard && isValidDate && isValidCvv) {
-      // Save booking to Firebase before navigating to success
-      await _saveBookingToFirebase();
+      if (!isCarAvailable) {
+        // Show error dialog for car unavailability
+        _showAvailabilityError('This vehicle is no longer available for the selected dates. Please choose different dates.');
+        return;
+      }
 
-      // Navigate to your existing Payment Success page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => PaymentSuccess()),
-      );
-    } else {
-      // Navigate to your existing Payment Failed page
+      // Remove any spaces or formatting from the card details for comparison
+      String cleanCardNumber = widget.cardNumber.replaceAll(' ', '').replaceAll('-', '');
+      String cleanExpiry = widget.expiry.replaceAll(' ', '').replaceAll('-', '').replaceAll('/', '');
+      String cleanCvv = widget.cvv.replaceAll(' ', '').replaceAll('-', '');
+
+      // Check if all card details match the valid ones
+      bool isValidCard = cleanCardNumber == VALID_CARD_NUMBER;
+      bool isValidDate = cleanExpiry == VALID_CARD_DATE;
+      bool isValidCvv = cleanCvv == VALID_CARD_CVV;
+
+      if (isValidCard && isValidDate && isValidCvv) {
+        // Save booking to Firebase before navigating to success
+        await _saveBookingToFirebase();
+
+        // Navigate to your existing Payment Success page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PaymentSuccess()),
+        );
+      } else {
+        // Navigate to your existing Payment Failed page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PaymentFailed()),
+        );
+      }
+    } catch (e) {
+      print('Error during payment verification: $e');
+
+      // Rollback any availability updates if there was an error
+      await _rollbackAvailabilityUpdates('FAILED_BOOKING');
+
+      // Navigate to payment failed page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => PaymentFailed()),
       );
     }
+  }
+
+  void _showAvailabilityError(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Booking Unavailable'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back to previous screen
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -559,6 +792,179 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
 
     return summary.isEmpty ? 'No Add-ons' : summary.join(', ');
   }
+
+  Future<bool> _validateSeatAvailability() async {
+    if (!isBusBooking || widget.selectedSeats.isEmpty) return true;
+
+    try {
+      String busId = widget.transport!['id'] ?? widget.transport!['name'];
+      String dateKey = "${widget.departDate!.year}-${widget.departDate!.month.toString().padLeft(2, '0')}-${widget.departDate!.day.toString().padLeft(2, '0')}";
+
+      DatabaseReference busRef = _database.child('buses').child(busId);
+      DataSnapshot snapshot = await busRef.child('timeSlots').child(widget.selectedTime!).child('bookedSeats').child(dateKey).get();
+
+      if (snapshot.exists) {
+        List<int> bookedSeats = [];
+        if (snapshot.value is List) {
+          bookedSeats = (snapshot.value as List).cast<int>();
+        } else if (snapshot.value is Map) {
+          bookedSeats = (snapshot.value as Map).values.cast<int>().toList();
+        }
+
+        // Check if any selected seats are already booked
+        for (int seatNumber in widget.selectedSeats) {
+          if (bookedSeats.contains(seatNumber)) {
+            return false; // Seat already booked
+          }
+        }
+      }
+
+      return true; // All seats are available
+    } catch (e) {
+      print('Error validating seat availability: $e');
+      return false; // Err on the side of caution
+    }
+  }
+
+  Future<bool> _validateCarAvailability() async {
+    if (!isCarBooking) return true;
+
+    try {
+      String carId = widget.transport!['id'] ?? widget.transport!['plateNumber'];
+      DatabaseReference carRef = _database.child('cars').child(carId);
+
+      // Normalize dates to remove time component
+      DateTime startDate = DateTime(widget.departDate!.year, widget.departDate!.month, widget.departDate!.day);
+      DateTime endDate = widget.returnDate != null
+          ? DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day)
+          : startDate;
+
+      // Check each date in the booking period (inclusive of both start and end)
+      DateTime currentDate = startDate;
+
+      while (currentDate.isBefore(endDate.add(Duration(days: 1)))) {
+        String dateKey = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+
+        DataSnapshot snapshot = await carRef.child('unavailableDates').child(dateKey).get();
+        if (snapshot.exists) {
+          // Check if the date is blocked
+          if (snapshot.value is bool && snapshot.value == true) {
+            return false; // Car is not available for this date (old structure)
+          } else if (snapshot.value is Map) {
+            Map<String, dynamic> dateData = Map<String, dynamic>.from(snapshot.value as Map);
+            if (dateData['isBlocked'] == true) {
+              return false; // Car is not available for this date (new structure)
+            }
+          }
+        }
+
+        currentDate = currentDate.add(Duration(days: 1));
+      }
+
+      return true; // Car is available for all requested dates
+    } catch (e) {
+      print('Error validating car availability: $e');
+      return false; // Err on the side of caution
+    }
+  }
+
+  Future<void> _rollbackAvailabilityUpdates(String bookingId) async {
+    try {
+      if (isBusBooking && widget.selectedSeats.isNotEmpty) {
+        await _rollbackBusSeats();
+      }
+
+      if (isCarBooking) {
+        await _rollbackCarAvailability();
+      }
+
+      print('Availability updates rolled back for failed booking: $bookingId');
+    } catch (e) {
+      print('Error rolling back availability updates: $e');
+    }
+  }
+
+  Future<void> _rollbackBusSeats() async {
+    try {
+      String busId = widget.transport!['id'] ?? widget.transport!['name'];
+      String dateKey = "${widget.departDate!.year}-${widget.departDate!.month.toString().padLeft(2, '0')}-${widget.departDate!.day.toString().padLeft(2, '0')}";
+
+      DatabaseReference busRef = _database.child('buses').child(busId);
+
+      // Remove the booked seats
+      await busRef.child('timeSlots').child(widget.selectedTime!).child('bookedSeats').child(dateKey).runTransaction((Object? bookedSeatsData) {
+        List<int> currentBookedSeats = [];
+
+        if (bookedSeatsData != null) {
+          if (bookedSeatsData is List) {
+            currentBookedSeats = bookedSeatsData.cast<int>();
+          } else if (bookedSeatsData is Map) {
+            currentBookedSeats = bookedSeatsData.values.cast<int>().toList();
+          }
+        }
+
+        // Remove the seats that were just booked
+        for (int seat in widget.selectedSeats) {
+          currentBookedSeats.remove(seat);
+        }
+
+        return Transaction.success(currentBookedSeats);
+      });
+
+      // Restore available seats count
+      await busRef.child('timeSlots').child(widget.selectedTime!).child('availableSeats').child(dateKey).runTransaction((Object? availableSeatsData) {
+        int currentAvailableSeats = availableSeatsData as int? ?? 0;
+        int restoredSeats = currentAvailableSeats + widget.selectedSeats.length;
+
+        return Transaction.success(restoredSeats);
+      });
+
+    } catch (e) {
+      print('Error rolling back bus seats: $e');
+    }
+  }
+
+  Future<void> _rollbackCarAvailability() async {
+    try {
+      String carId = widget.transport!['id'] ?? widget.transport!['plateNumber'];
+      DatabaseReference carRef = _database.child('cars').child(carId);
+
+      // Normalize dates to remove time component
+      DateTime startDate = DateTime(widget.departDate!.year, widget.departDate!.month, widget.departDate!.day);
+      DateTime endDate = widget.returnDate != null
+          ? DateTime(widget.returnDate!.year, widget.returnDate!.month, widget.returnDate!.day)
+          : startDate;
+
+      // Calculate dates to restore (same logic as blocking)
+      List<String> datesToRestore = [];
+      DateTime currentDate = startDate;
+
+      while (currentDate.isBefore(endDate.add(Duration(days: 1)))) {
+        String dateKey = "${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}";
+        datesToRestore.add(dateKey);
+        currentDate = currentDate.add(Duration(days: 1));
+      }
+
+      // Remove unavailable dates
+      for (String dateKey in datesToRestore) {
+        await carRef.child('unavailableDates').child(dateKey).remove();
+      }
+
+      // Reset booking status
+      await carRef.update({
+        'isCurrentlyBooked': false,
+        'currentBookingStart': null,
+        'currentBookingEnd': null,
+        'totalBlockedDates': null,
+      });
+
+      print('Rolled back car availability for dates: $datesToRestore');
+
+    } catch (e) {
+      print('Error rolling back car availability: $e');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
