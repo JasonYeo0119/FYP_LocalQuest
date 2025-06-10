@@ -802,30 +802,30 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
     }
   }
 
-  Future<void> _selectFlightReturnDate(BuildContext context) async {
-    DateTime initialDate = _flightDepartDate?.add(Duration(days: 1)) ?? DateTime.now();
-
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: _flightDepartDate ?? DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-
-    if (pickedDate != null) {
-      if (_flightDepartDate != null && pickedDate.isBefore(_flightDepartDate!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Return date must be after depart date.")),
-        );
-      } else {
-        setState(() {
-          _flightReturnDate = pickedDate;
-          _flightReturnController.text =
-          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-        });
-      }
-    }
-  }
+  // Future<void> _selectFlightReturnDate(BuildContext context) async {
+  //   DateTime initialDate = _flightDepartDate?.add(Duration(days: 1)) ?? DateTime.now();
+  //
+  //   DateTime? pickedDate = await showDatePicker(
+  //     context: context,
+  //     initialDate: initialDate,
+  //     firstDate: _flightDepartDate ?? DateTime.now(),
+  //     lastDate: DateTime(2100),
+  //   );
+  //
+  //   if (pickedDate != null) {
+  //     if (_flightDepartDate != null && pickedDate.isBefore(_flightDepartDate!)) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Return date must be after depart date.")),
+  //       );
+  //     } else {
+  //       setState(() {
+  //         _flightReturnDate = pickedDate;
+  //         _flightReturnController.text =
+  //         "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+  //       });
+  //     }
+  //   }
+  // }
 
   void swapFlightValues() {
     setState(() {
@@ -865,32 +865,32 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
                 ),
               ),
             ),
-            SizedBox(width: screenWidth * 0.026),
-            Expanded(
-              child: Container(
-                height: screenHeight * 0.045,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black, width: 1),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
-                alignment: Alignment.center,
-                child: TextField(
-                  controller: _flightReturnController,
-                  readOnly: true,
-                  onTap: () => _selectFlightReturnDate(context),
-                  decoration: InputDecoration(
-                    hintText: 'Return date (Optional)',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                  textAlignVertical: TextAlignVertical.center,
-                ),
-              ),
-            ),
+            // SizedBox(width: screenWidth * 0.026),
+            // Expanded(
+            //   child: Container(
+            //     height: screenHeight * 0.045,
+            //     decoration: BoxDecoration(
+            //       color: Colors.white,
+            //       borderRadius: BorderRadius.circular(5),
+            //       border: Border.all(color: Colors.black, width: 1),
+            //     ),
+            //     padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+            //     alignment: Alignment.center,
+            //     child: TextField(
+            //       controller: _flightReturnController,
+            //       readOnly: true,
+            //       onTap: () => _selectFlightReturnDate(context),
+            //       decoration: InputDecoration(
+            //         hintText: 'Return date (Optional)',
+            //         border: InputBorder.none,
+            //         isDense: true,
+            //         contentPadding: EdgeInsets.zero,
+            //       ),
+            //       style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+            //       textAlignVertical: TextAlignVertical.center,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         SizedBox(height: screenHeight * 0.015),
@@ -1306,31 +1306,31 @@ class _BookingtransportmainState extends State<Bookingtransportmain> with Single
               ),
             ),
             SizedBox(width: screenWidth * 0.026),
-            Expanded(
-              child: Container(
-                height: screenHeight * 0.045,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black, width: 1),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
-                alignment: Alignment.center,
-                child: TextField(
-                  controller: _checkOutController,
-                  readOnly: true,
-                  onTap: () => _selectDate(context, _checkOutController, false),
-                  decoration: InputDecoration(
-                    hintText: 'Return date (Optional)',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
-                  textAlignVertical: TextAlignVertical.center,
-                ),
-              ),
-            ),
+            // Expanded(
+            //   child: Container(
+            //     height: screenHeight * 0.045,
+            //     decoration: BoxDecoration(
+            //       color: Colors.white,
+            //       borderRadius: BorderRadius.circular(5),
+            //       border: Border.all(color: Colors.black, width: 1),
+            //     ),
+            //     padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.021),
+            //     alignment: Alignment.center,
+            //     child: TextField(
+            //       controller: _checkOutController,
+            //       readOnly: true,
+            //       onTap: () => _selectDate(context, _checkOutController, false),
+            //       decoration: InputDecoration(
+            //         hintText: 'Return date (Optional)',
+            //         border: InputBorder.none,
+            //         isDense: true,
+            //         contentPadding: EdgeInsets.zero,
+            //       ),
+            //       style: TextStyle(fontSize: screenWidth * 0.036, color: Colors.black),
+            //       textAlignVertical: TextAlignVertical.center,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         SizedBox(height: screenHeight * 0.015),

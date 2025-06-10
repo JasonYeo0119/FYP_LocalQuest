@@ -98,7 +98,7 @@ class DealsnewState extends State<Dealsnew> {
       DateTime? endDate = _parseDate(enddate.text);
 
       if (startDate != null && endDate != null) {
-        if (endDate.isBefore(startDate) || endDate.isAtSameMomentAs(startDate)) {
+        if (endDate.isBefore(startDate)) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('End date must be after start date'),

@@ -64,7 +64,6 @@ class _BookingallinoneState extends State<Bookingallinone> {
 
   final List<Map<String, dynamic>> states = [
     {"name": "Kuala Lumpur", "image": "lib/Image/kl.png"},
-    {"name": "Selangor", "image": "lib/Image/selangor.png"},
     {"name": "Penang", "image": "lib/Image/penang.png"},
     {"name": "Malacca", "image": "lib/Image/malacca.png"},
     {"name": "Kedah", "image": "lib/Image/kedah.png"},
@@ -75,7 +74,6 @@ class _BookingallinoneState extends State<Bookingallinone> {
     {"name": "Perak", "image": "lib/Image/perak.png"},
     {"name": "Terengganu", "image": "lib/Image/terengganu.png"},
     {"name": "Kelantan", "image": "lib/Image/kelantan.png"},
-    {"name": "Negeri Sembilan", "image": "lib/Image/n9.png"},
     {"name": "Putrajaya", "image": "lib/Image/putrajaya.png"},
   ];
 
@@ -310,7 +308,7 @@ class _BookingallinoneState extends State<Bookingallinone> {
   Widget _buildStateSelectionGrid(double screenWidth, double screenHeight) {
     return Container(
       width: double.infinity,
-      height: screenHeight * 0.252,
+      height: screenHeight * 0.19,
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
@@ -546,7 +544,7 @@ class _BookingallinoneState extends State<Bookingallinone> {
                 SizedBox(width: screenWidth * 0.02),
                 Expanded(
                   child: Text(
-                    "Kuala Lumpur, Selangor, Penang and Malacca are popular destinations !! 🔥 ",
+                    "Kuala Lumpur, Penang and Malacca are popular destinations !! 🔥 ",
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: screenWidth * 0.029,
