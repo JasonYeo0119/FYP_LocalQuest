@@ -37,6 +37,11 @@ class _AttractionDetailState extends State<AttractionDetail> {
     super.dispose();
   }
 
+  // Check if attraction is free (all prices are 0)
+  bool _isFreeAttraction() {
+    return widget.attraction.pricing.every((pricing) => pricing.price == 0);
+  }
+
   void _updateQuantity(int index, int change) {
     setState(() {
       int newQuantity = (_selectedQuantities[index] ?? 0) + change;
@@ -293,8 +298,8 @@ class _AttractionDetailState extends State<AttractionDetail> {
             SizedBox(height: screenHeight * 0.02),
           ],
 
-          // Pricing with ticket selection
-          if (widget.attraction.pricing.isNotEmpty) ...[
+          // Pricing section - only show if not free
+          if (widget.attraction.pricing.isNotEmpty && !_isFreeAttraction()) ...[
             Text(
               'Select Tickets',
               style: TextStyle(
@@ -444,7 +449,7 @@ class _AttractionDetailState extends State<AttractionDetail> {
             ),
             SizedBox(height: screenHeight * 0.02),
 
-            // Total and Book Now section
+            // Total and Book Now section - only show if tickets selected and not free
             if (_getTotalTickets() > 0) ...[
               Container(
                 padding: EdgeInsets.all(screenWidth * 0.04),
@@ -503,6 +508,52 @@ class _AttractionDetailState extends State<AttractionDetail> {
                 ),
               ),
             ],
+          ],
+
+          // Free attraction notice - show if all prices are 0
+          if (_isFreeAttraction() && widget.attraction.pricing.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green[400]!, Colors.green[600]!],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: screenWidth * 0.06,
+                  ),
+                  SizedBox(width: screenWidth * 0.03),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Free Attraction',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'This attraction is free to visit. No booking required!',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.035,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),

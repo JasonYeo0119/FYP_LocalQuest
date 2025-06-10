@@ -564,12 +564,14 @@ class _FavouriteState extends State<Favourite> {
     }
   }
 
-  void _removeFavorite(String productId, String category) async {
+  void _removeFavorite(dynamic productId, String category) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     try {
-      // Determine which node to remove from based on category
+      // Convert productId to string for Firebase path
+      String productIdString = productId.toString();
+
       String nodeName = category == 'hotel' ? 'hotel_favorites' : 'favorites';
 
       await FirebaseDatabase.instance
@@ -577,12 +579,16 @@ class _FavouriteState extends State<Favourite> {
           .child('users')
           .child(user.uid)
           .child(nodeName)
-          .child(productId)
+          .child(productIdString)
           .remove();
 
       setState(() {
-        favorites.removeWhere((item) => item['id'] == productId);
-        _applyFilters(); // Reapply filters after removal
+        // Handle both int and string comparisons
+        favorites.removeWhere((item) =>
+        item['id'].toString() == productIdString ||
+            item['id'] == productId
+        );
+        _applyFilters();
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

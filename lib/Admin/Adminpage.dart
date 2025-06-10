@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:localquest/Admin/Manageattractiondata.dart';
 import 'package:localquest/Admin/Managedealsdata.dart';
-import 'package:localquest/Admin/Managehoteldata.dart';
 import 'package:localquest/Admin/Managetransportdata.dart';
 import 'package:localquest/Admin/Viewbugreport.dart';
 import 'package:localquest/Admin/Vieworders.dart';
@@ -101,7 +100,7 @@ class AdminpageState extends State<Adminpage> {
                         // Navigate to different pages based on index
                         switch (index) {
                           case 0:
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => Managehoteldata()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => Adminpage()));
                             break;
                           case 1:
                             Navigator.push(context, MaterialPageRoute(builder: (context) => ManageTransportData()));

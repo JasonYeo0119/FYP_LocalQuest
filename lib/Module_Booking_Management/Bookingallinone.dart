@@ -63,22 +63,20 @@ class _BookingallinoneState extends State<Bookingallinone> {
   bool _isGenerating = false;
 
   final List<Map<String, dynamic>> states = [
-    {"name": "Johor", "image": "lib/Image/johor.png"},
-    {"name": "Kedah", "image": "lib/Image/kedah.png"},
-    {"name": "Kelantan", "image": "lib/Image/kelantan.png"},
     {"name": "Kuala Lumpur", "image": "lib/Image/kl.png"},
-    {"name": "Labuan", "image": "lib/Image/labuan.png"},
-    {"name": "Malacca", "image": "lib/Image/malacca.png"},
-    {"name": "Negeri Sembilan", "image": "lib/Image/n9.png"},
-    {"name": "Pahang", "image": "lib/Image/pahang.png"},
+    {"name": "Selangor", "image": "lib/Image/selangor.png"},
     {"name": "Penang", "image": "lib/Image/penang.png"},
-    {"name": "Perak", "image": "lib/Image/perak.png"},
-    {"name": "Perlis", "image": "lib/Image/perlis.png"},
-    {"name": "Putrajaya", "image": "lib/Image/putrajaya.png"},
+    {"name": "Malacca", "image": "lib/Image/malacca.png"},
+    {"name": "Kedah", "image": "lib/Image/kedah.png"},
+    {"name": "Johor", "image": "lib/Image/johor.png"},
+    {"name": "Pahang", "image": "lib/Image/pahang.png"},
     {"name": "Sabah", "image": "lib/Image/sabah.png"},
     {"name": "Sarawak", "image": "lib/Image/sarawak.png"},
-    {"name": "Selangor", "image": "lib/Image/selangor.png"},
+    {"name": "Perak", "image": "lib/Image/perak.png"},
     {"name": "Terengganu", "image": "lib/Image/terengganu.png"},
+    {"name": "Kelantan", "image": "lib/Image/kelantan.png"},
+    {"name": "Negeri Sembilan", "image": "lib/Image/n9.png"},
+    {"name": "Putrajaya", "image": "lib/Image/putrajaya.png"},
   ];
 
   final List<String> malaysianStates = [
@@ -519,6 +517,47 @@ class _BookingallinoneState extends State<Bookingallinone> {
             ),
           ),
           SizedBox(height: screenHeight * 0.01),
+          // Hot choices banner
+          Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(bottom: screenHeight * 0.01),
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.026,
+              vertical: screenHeight * 0.008,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.yellowAccent,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.local_fire_department,
+                  color: Colors.black,
+                  size: screenWidth * 0.04,
+                ),
+                SizedBox(width: screenWidth * 0.02),
+                Expanded(
+                  child: Text(
+                    "Kuala Lumpur, Selangor, Penang and Malacca are popular destinations !! 🔥 ",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: screenWidth * 0.029,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           // State selection grid
           _buildStateSelectionGrid(screenWidth, screenHeight),

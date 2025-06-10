@@ -507,160 +507,160 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             ),
             SizedBox(height: 15),
 
-            // Show room type information for hotel bookings
-            if (isHotelBooking && widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
-              SizedBox(height: 15),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.hotel_class, color: Colors.orange[700], size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          "Selected Rooms:",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      _getRoomTypeSummary(),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orange[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            // // Show room type information for hotel bookings
+            // if (isHotelBooking && widget.selectedRoomTypes != null && widget.selectedRoomTypes!.isNotEmpty) ...[
+            //   SizedBox(height: 15),
+            //   Container(
+            //     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            //     margin: EdgeInsets.symmetric(horizontal: 20),
+            //     decoration: BoxDecoration(
+            //       color: Colors.orange.withOpacity(0.1),
+            //       borderRadius: BorderRadius.circular(20),
+            //       border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            //     ),
+            //     child: Column(
+            //       children: [
+            //         Row(
+            //           mainAxisAlignment: MainAxisAlignment.center,
+            //           children: [
+            //             Icon(Icons.hotel_class, color: Colors.orange[700], size: 16),
+            //             SizedBox(width: 6),
+            //             Text(
+            //               "Selected Rooms:",
+            //               style: GoogleFonts.poppins(
+            //                 fontSize: 12,
+            //                 fontWeight: FontWeight.w600,
+            //                 color: Colors.orange[800],
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //         SizedBox(height: 6),
+            //         Text(
+            //           _getRoomTypeSummary(),
+            //           textAlign: TextAlign.center,
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 11,
+            //             fontWeight: FontWeight.w500,
+            //             color: Colors.orange[700],
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ],
 
-            if (isFlightBooking && widget.transport != null) ...[
-              SizedBox(height: 15),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.purple.withOpacity(0.3)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.flight, color: Colors.purple[700], size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          "Flight Details:",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.purple[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      "${widget.transport!['airline']} ${widget.transport!['flightNumber']}",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.purple[700],
-                      ),
-                    ),
-                    Text(
-                      "${widget.transport!['origin']} → ${widget.transport!['destination']}",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.purple[600],
-                      ),
-                    ),
-                    if (widget.transport!['selectedClass'] != null)
-                      Text(
-                        "${widget.transport!['selectedClass']} Class",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.purple[600],
-                        ),
-                      ),
-                    // Updated passenger info
-                    if (widget.passengerData != null) ...[
-                      Text(
-                        "${widget.passengerData!.length} Passenger${widget.passengerData!.length > 1 ? 's' : ''}",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.purple[600],
-                        ),
-                      ),
-                      Text(
-                        _getPassengerSummary(),
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.purple[500],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+            // if (isFlightBooking && widget.transport != null) ...[
+            //   SizedBox(height: 15),
+            //   Container(
+            //     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            //     margin: EdgeInsets.symmetric(horizontal: 20),
+            //     decoration: BoxDecoration(
+            //       color: Colors.purple.withOpacity(0.1),
+            //       borderRadius: BorderRadius.circular(20),
+            //       border: Border.all(color: Colors.purple.withOpacity(0.3)),
+            //     ),
+            //     child: Column(
+            //       children: [
+            //         Row(
+            //           mainAxisAlignment: MainAxisAlignment.center,
+            //           children: [
+            //             Icon(Icons.flight, color: Colors.purple[700], size: 16),
+            //             SizedBox(width: 6),
+            //             Text(
+            //               "Flight Details:",
+            //               style: GoogleFonts.poppins(
+            //                 fontSize: 12,
+            //                 fontWeight: FontWeight.w600,
+            //                 color: Colors.purple[800],
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //         SizedBox(height: 6),
+            //         Text(
+            //           "${widget.transport!['airline']} ${widget.transport!['flightNumber']}",
+            //           textAlign: TextAlign.center,
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 11,
+            //             fontWeight: FontWeight.w600,
+            //             color: Colors.purple[700],
+            //           ),
+            //         ),
+            //         Text(
+            //           "${widget.transport!['origin']} → ${widget.transport!['destination']}",
+            //           textAlign: TextAlign.center,
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 10,
+            //             fontWeight: FontWeight.w500,
+            //             color: Colors.purple[600],
+            //           ),
+            //         ),
+            //         if (widget.transport!['selectedClass'] != null)
+            //           Text(
+            //             "${widget.transport!['selectedClass']} Class",
+            //             textAlign: TextAlign.center,
+            //             style: GoogleFonts.poppins(
+            //               fontSize: 10,
+            //               fontWeight: FontWeight.w500,
+            //               color: Colors.purple[600],
+            //             ),
+            //           ),
+            //         // Updated passenger info
+            //         if (widget.passengerData != null) ...[
+            //           Text(
+            //             "${widget.passengerData!.length} Passenger${widget.passengerData!.length > 1 ? 's' : ''}",
+            //             textAlign: TextAlign.center,
+            //             style: GoogleFonts.poppins(
+            //               fontSize: 10,
+            //               fontWeight: FontWeight.w500,
+            //               color: Colors.purple[600],
+            //             ),
+            //           ),
+            //           Text(
+            //             _getPassengerSummary(),
+            //             textAlign: TextAlign.center,
+            //             style: GoogleFonts.poppins(
+            //               fontSize: 9,
+            //               fontWeight: FontWeight.w400,
+            //               color: Colors.purple[500],
+            //             ),
+            //           ),
+            //         ],
+            //       ],
+            //     ),
+            //   ),
+            // ],
 
-            SizedBox(height: 10),
+            // SizedBox(height: 10),
 
-            if (isFlightBooking && widget.additionalCosts > 0) ...[
-              SizedBox(height: 10),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_circle_outline, color: Colors.green[700], size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      "Add-ons: MYR ${widget.additionalCosts.toStringAsFixed(0)}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.green[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            // if (isFlightBooking && widget.additionalCosts > 0) ...[
+            //   SizedBox(height: 10),
+            //   Container(
+            //     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            //     margin: EdgeInsets.symmetric(horizontal: 20),
+            //     decoration: BoxDecoration(
+            //       color: Colors.green.withOpacity(0.1),
+            //       borderRadius: BorderRadius.circular(15),
+            //       border: Border.all(color: Colors.green.withOpacity(0.3)),
+            //     ),
+            //     child: Row(
+            //       mainAxisAlignment: MainAxisAlignment.center,
+            //       children: [
+            //         Icon(Icons.add_circle_outline, color: Colors.green[700], size: 14),
+            //         SizedBox(width: 6),
+            //         Text(
+            //           "Add-ons: MYR ${widget.additionalCosts.toStringAsFixed(0)}",
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 11,
+            //             fontWeight: FontWeight.w500,
+            //             color: Colors.green[700],
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ],
 
             Text(
               "Please do not close this page",

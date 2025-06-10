@@ -562,15 +562,6 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                     color: Colors.black87,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    _showSingleStateAttractions(day.state);
-                  },
-                  child: Text(
-                    'See more',
-                    style: TextStyle(fontSize: screenWidth * 0.03),
-                  ),
-                ),
               ],
             ),
             SizedBox(height: screenHeight * 0.01),

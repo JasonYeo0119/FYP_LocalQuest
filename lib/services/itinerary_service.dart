@@ -146,7 +146,7 @@ class ItineraryDay {
 class ScheduledActivity {
   final DateTime startTime;
   final DateTime endTime;
-  final String activityType; // 'transport', 'attraction', 'meal', 'rest', 'checkin', 'checkout'
+  final String activityType;
   final String title;
   final String description;
   final String? location;
