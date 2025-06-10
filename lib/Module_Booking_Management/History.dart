@@ -355,16 +355,16 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   }
 
   // Get QR code from Firebase
-  Future<String?> getQRCodeForBooking(String bookingId) async {
+  Future<Map<String, dynamic>?> getQRCodeDataForBooking(String bookingId) async {
     try {
       DatabaseEvent event = await _database.child('qr_codes').child(bookingId).once();
       if (event.snapshot.exists) {
         Map<String, dynamic> qrData = Map<String, dynamic>.from(event.snapshot.value as Map);
-        return qrData['qrCodeImage']; // Returns base64 string
+        return qrData;
       }
       return null;
     } catch (e) {
-      print('Error getting QR code: $e');
+      print('Error getting QR code data: $e');
       return null;
     }
   }
@@ -373,10 +373,100 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   Widget displayQRCode(String base64String) {
     return Container(
       padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Image.memory(
         base64Decode(base64String),
-        width: 250,
-        height: 250,
+        width: 200,
+        height: 200,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
+  Widget buildBookingDetails(Map<String, dynamic> bookingData) {
+    // Format dates
+    String formatDate(String dateString) {
+      try {
+        DateTime date = DateTime.parse(dateString);
+        return DateFormat('MMM dd, yyyy').format(date);
+      } catch (e) {
+        return dateString;
+      }
+    }
+
+    String formatDateTime(String dateString) {
+      try {
+        DateTime date = DateTime.parse(dateString);
+        return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+      } catch (e) {
+        return dateString;
+      }
+    }
+
+    return Container(
+      width: double.maxFinite,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Booking Details',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0816A7),
+            ),
+          ),
+          SizedBox(height: 12),
+
+          // Booking ID
+          _buildDetailRow(
+            'Booking ID',
+            bookingData['bookingId'] ?? 'N/A',
+            isMonospace: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {bool isMonospace = false, bool isPrice = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isPrice ? FontWeight.bold : FontWeight.normal,
+                fontFamily: isMonospace ? 'monospace' : null,
+                color: isPrice ? Color(0xFF0816A7) : Colors.black87,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -384,71 +474,117 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
   void _showQRCodeDialog(String bookingId, String bookingType) async {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('QR Code'),
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          content: FutureBuilder<String?>(
-            future: getQRCodeForBooking(bookingId),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Container(
-                  height: 250,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF0816A7),
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF0816A7),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
                     ),
                   ),
-                );
-              } else if (snapshot.hasError || !snapshot.hasData) {
-                return Container(
-                  height: 250,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        SizedBox(height: 16),
-                        Text('QR Code not available'),
-                      ],
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Your QR Code',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
                   ),
-                );
-              } else {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    displayQRCode(snapshot.data!),
-                    SizedBox(height: 16),
-                    Text(
-                      'Booking ID: $bookingId',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Show this QR code at the venue',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                );
-              }
-            },
+                ),
+
+                // Content
+                Container(
+                  padding: EdgeInsets.all(20),
+                  child: FutureBuilder<Map<String, dynamic>?>(
+                    future: getQRCodeDataForBooking(bookingId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Container(
+                          height: 200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF0816A7),
+                            ),
+                          ),
+                        );
+                      } else if (snapshot.hasError || !snapshot.hasData) {
+                        return Container(
+                          height: 200,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                SizedBox(height: 16),
+                                Text(
+                                  'QR Code not available',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      } else {
+                        Map<String, dynamic> qrData = snapshot.data!;
+                        String? qrCodeImage = qrData['qrCodeImage'];
+
+                        return SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              // QR Code
+                              if (qrCodeImage != null) ...[
+                                displayQRCode(qrCodeImage),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Show this QR code to the staff\n\nor\n\nGive your Booking ID to the staff',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 10),
+                              ],
+
+                              // Booking Details
+                              buildBookingDetails(qrData),
+
+                              SizedBox(height: 20),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
