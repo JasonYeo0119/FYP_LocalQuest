@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:localquest/Homepage.dart';
 import 'package:localquest/Module_Booking_Management/Location.dart';
@@ -350,6 +352,107 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
       default:
         return Colors.grey;
     }
+  }
+
+  // Get QR code from Firebase
+  Future<String?> getQRCodeForBooking(String bookingId) async {
+    try {
+      DatabaseEvent event = await _database.child('qr_codes').child(bookingId).once();
+      if (event.snapshot.exists) {
+        Map<String, dynamic> qrData = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return qrData['qrCodeImage']; // Returns base64 string
+      }
+      return null;
+    } catch (e) {
+      print('Error getting QR code: $e');
+      return null;
+    }
+  }
+
+  // Display QR code from base64
+  Widget displayQRCode(String base64String) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Image.memory(
+        base64Decode(base64String),
+        width: 250,
+        height: 250,
+      ),
+    );
+  }
+
+  void _showQRCodeDialog(String bookingId, String bookingType) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('QR Code'),
+              IconButton(
+                icon: Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          content: FutureBuilder<String?>(
+            future: getQRCodeForBooking(bookingId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(
+                  height: 250,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF0816A7),
+                    ),
+                  ),
+                );
+              } else if (snapshot.hasError || !snapshot.hasData) {
+                return Container(
+                  height: 250,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text('QR Code not available'),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    displayQRCode(snapshot.data!),
+                    SizedBox(height: 16),
+                    Text(
+                      'Booking ID: $bookingId',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Show this QR code at the venue',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildEmptyState(String title, String subtitle, IconData icon) {
@@ -846,7 +949,6 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               ],
             ),
             SizedBox(height: 12),
-
             // Room Type Information (Enhanced)
             _buildRoomTypesDisplay(booking),
             SizedBox(height: 12),
@@ -999,6 +1101,30 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+
+            if (booking['bookingId'] != null) ...[
+              SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showQRCodeDialog(
+                      booking['bookingId'],
+                      booking['bookingType'] ?? 'unknown'
+                  ),
+                  icon: Icon(Icons.qr_code, size: 20),
+                  label: Text('View QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
           ],
         ),
       ),
@@ -1061,6 +1187,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                   ],
                 ),
                 SizedBox(height: 12),
+
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1255,6 +1382,30 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                       ),
                     ]
                 ),
+                SizedBox(height: 12),
+
+                if (booking['bookingId'] != null) ...[
+                  SizedBox(height: 8),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showQRCodeDialog(
+                          booking['bookingId'],
+                          booking['bookingType'] ?? 'unknown'
+                      ),
+                      icon: Icon(Icons.qr_code, size: 20),
+                      label: Text('View QR Code'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0816A7),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                ],
               ],
             ),
           ),
@@ -1450,7 +1601,6 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               ],
             ),
             SizedBox(height: 12),
-
             // Booking details
             Row(
               children: [
@@ -1569,6 +1719,30 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+
+            if (booking['bookingId'] != null) ...[
+              SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showQRCodeDialog(
+                      booking['bookingId'],
+                      booking['bookingType'] ?? 'unknown'
+                  ),
+                  icon: Icon(Icons.qr_code, size: 20),
+                  label: Text('View QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
           ],
         ),
       ),
@@ -1631,7 +1805,6 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               ],
             ),
             SizedBox(height: 12),
-
             // Location info
             if (booking['attraction']?['city'] != null || booking['attraction']?['state'] != null) ...[
               Row(
@@ -1732,6 +1905,30 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+
+            if (booking['bookingId'] != null) ...[
+              SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showQRCodeDialog(
+                      booking['bookingId'],
+                      booking['bookingType'] ?? 'unknown'
+                  ),
+                  icon: Icon(Icons.qr_code, size: 20),
+                  label: Text('View QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
           ],
         ),
       ),
@@ -1793,7 +1990,6 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               ],
             ),
             SizedBox(height: 12),
-
             // Flight route
             Container(
               padding: EdgeInsets.all(12),
@@ -1877,8 +2073,6 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
               ),
               SizedBox(height: 8),
             ],
-
-            // Detailed Passenger Information
             // Detailed Passenger Information
             if (booking['passengerData'] != null) ...[
               Container(
@@ -2099,6 +2293,30 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+
+            if (booking['bookingId'] != null) ...[
+              SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showQRCodeDialog(
+                      booking['bookingId'],
+                      booking['bookingType'] ?? 'unknown'
+                  ),
+                  icon: Icon(Icons.qr_code, size: 20),
+                  label: Text('View QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0816A7),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
           ],
         ),
       ),

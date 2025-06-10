@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:localquest/Module_User_Account/Profile.dart';
+import 'package:localquest/Module_User_Account/Profiledetails.dart';
 
 class Updateprofiledetails extends StatefulWidget {
   final bool isVerified;
@@ -338,8 +339,11 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
 
       // Navigate back after successful update
       await Future.delayed(Duration(seconds: 1));
-      Navigator.of(context).pop();
-
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => Profile(),
+        ),
+      );
     } catch (e) {
       String errorMessage = 'Failed to update profile.';
 

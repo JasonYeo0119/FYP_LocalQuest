@@ -10,6 +10,11 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:localquest/Model/attraction_model.dart';
 import '../Model/hotel.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 
 class Paymentloading extends StatefulWidget {
   final String cardNumber;
@@ -104,6 +109,119 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
     ));
   }
 
+  // Method to generate QR Code data
+  String _generateQRData(String bookingId) {
+    Map<String, dynamic> qrData = {
+      'bookingId': bookingId,
+      'bookingType': _getBookingType(),
+      'totalPrice': widget.totalPrice,
+      'bookingDate': DateTime.now().toIso8601String(),
+      'userId': _auth.currentUser?.uid,
+    };
+
+    // Add specific booking details based on type
+    if (isHotelBooking) {
+      qrData.addAll({
+        'hotelName': widget.hotel!.name,
+        'checkInDate': widget.checkInDate?.toIso8601String(),
+        'checkOutDate': widget.checkOutDate?.toIso8601String(),
+        'numberOfRooms': widget.numberOfRooms,
+        'numberOfNights': widget.numberOfNights,
+      });
+    } else if (isAttractionBooking) {
+      qrData.addAll({
+        'attractionName': widget.attraction!.name,
+        'visitDate': widget.visitDate?.toIso8601String(),
+        'city': widget.attraction!.city,
+      });
+    } else if (isFlightBooking) {
+      qrData.addAll({
+        'airline': widget.transport!['airline'],
+        'flightNumber': widget.transport!['flightNumber'],
+        'route': '${widget.transport!['origin']} → ${widget.transport!['destination']}',
+        'departDate': widget.departDate?.toIso8601String(),
+        'numberOfPassengers': widget.passengerData?.length ?? 0,
+      });
+    } else if (isFerryBooking) {
+      qrData.addAll({
+        'route': '${widget.transport!['origin']} → ${widget.transport!['destination']}',
+        'departDate': widget.departDate?.toIso8601String(),
+        'numberOfPassengers': widget.ferryNumberOfPax,
+        'ticketType': widget.ferryTicketType,
+      });
+    }
+
+    return jsonEncode(qrData);
+  }
+
+  // Generate QR Code and save it
+  Future<String?> _generateAndSaveQRCode(String bookingId) async {
+    try {
+      // Generate QR data string
+      String qrData = _generateQRData(bookingId);
+
+      User? user = _auth.currentUser;
+      if (user != null) {
+        String userId = user.uid;
+
+        // Generate QR code image as base64
+        final qrValidationResult = QrValidator.validate(
+          data: qrData,
+          version: QrVersions.auto,
+          errorCorrectionLevel: QrErrorCorrectLevel.M,
+        );
+
+        if (qrValidationResult.status == QrValidationStatus.valid) {
+          final qrCode = qrValidationResult.qrCode!;
+          final painter = QrPainter.withQr(
+            qr: qrCode,
+            color: const Color(0xFF000000),
+            emptyColor: const Color(0xFFFFFFFF),
+            gapless: true,
+          );
+
+          // Convert QR code to image and then to bytes
+          final picData = await painter.toImageData(300);
+          final byteData = picData!.buffer.asUint8List();
+
+          // Encode bytes to base64
+          String base64Image = base64Encode(byteData);
+
+          Map<String, dynamic> qrCodeData = {
+            'bookingId': bookingId,
+            'qrData': qrData,
+            'qrCodeImage': base64Image,
+            'createdAt': DateTime.now().toIso8601String(),
+            'userId': userId,
+            'bookingType': _getBookingType(),
+            'status': 'active',
+          };
+
+          // Save to /qr_codes
+          await _database.child('qr_codes').child(bookingId).set(qrCodeData);
+
+          // Save reference under user's bookings
+          await _database.child('users').child(userId).child('bookings').child(bookingId).child('qrCode').set({
+            'qrData': qrData,
+            'qrCodeImage': base64Image,
+            'createdAt': DateTime.now().toIso8601String(),
+            'status': 'active',
+          });
+
+          print('QR Code image (base64) saved for booking: $bookingId');
+          return qrData;
+        } else {
+          print('Invalid QR data');
+          return null;
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error generating QR code: $e');
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -135,7 +253,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
       User? user = _auth.currentUser;
       if (user != null) {
         String userId = user.uid;
-        String bookingId = _generateBookingId(); // Use custom booking ID generator
+        String bookingId = _generateBookingId();
 
         Map<String, dynamic> bookingData = {
           'bookingId': bookingId,
@@ -236,7 +354,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
               'duration': transportData['duration'],
               'route': '${transportData['origin']} → ${transportData['destination']}',
               'amenities': transportData['amenities'],
-              // ADD PASSENGER DATA:
               'passengerData': widget.passengerData,
               'leadPassengerData': widget.leadPassengerData,
               'numberOfPassengers': widget.passengerData?.length ?? 0,
@@ -316,26 +433,28 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
           }
         }
 
-        // Save to user's bookings using the custom booking ID as key
         await _database.child('users').child(userId).child('bookings').child(bookingId).set(bookingData);
-
-        // Save to general bookings collection using the custom booking ID as key
         await _database.child('bookings').child(bookingId).set(bookingData);
-
-        // Save to specific collection based on booking type
         String collectionName = _getCollectionName();
         await _database.child(collectionName).child(bookingId).set(bookingData);
 
         print('${_getBookingType()} booking saved successfully with ID: $bookingId');
 
-        // Print room type information for hotel bookings
-        if (isHotelBooking && widget.selectedRoomTypes != null) {
-          print('Selected Room Types:');
-          for (var roomTypeData in widget.selectedRoomTypes!) {
-            print('  - ${roomTypeData['quantity']}x ${roomTypeData['roomType']} @ MYR ${roomTypeData['pricePerNight']}/night');
-            print('    Total: MYR ${roomTypeData['totalPrice']}');
-          }
-          print('Total for all rooms: MYR ${widget.totalPrice}');
+        // Generate and save QR code after booking is saved
+        String? qrDataString = await _generateAndSaveQRCode(bookingId);
+        if (qrDataString != null) {
+          // Update booking with QR code reference
+          await _database.child('users').child(userId).child('bookings').child(bookingId).update({
+            'hasQRCode': true,
+            'qrCodeGenerated': true,
+          });
+
+          await _database.child('bookings').child(bookingId).update({
+            'hasQRCode': true,
+            'qrCodeGenerated': true,
+          });
+
+          print('QR Code generated and saved successfully for booking: $bookingId');
         }
 
       } else {
