@@ -65,7 +65,7 @@ class MockMalaysiaFlightService {
       'aircraft': 'A321',
       'route': {
         'from': 'KUL',
-        'to': 'BKI'
+        'to': 'KCH'
       },
       'schedule': {
         'departure_time': '14:25',
@@ -121,12 +121,12 @@ class MockMalaysiaFlightService {
       'aircraft': 'A320',
       'route': {
         'from': 'KUL',
-        'to': 'KCH'
+        'to': 'TWU'
       },
       'schedule': {
         'departure_time': '16:40',
-        'arrival_time': '18:15',
-        'duration': '1h 35m',
+        'arrival_time': '19:15',
+        'duration': '2h 35m',
         'days': ['Tuesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       },
       'pricing': {
@@ -147,12 +147,12 @@ class MockMalaysiaFlightService {
       'aircraft': 'B737-800',
       'route': {
         'from': 'KUL',
-        'to': 'KCH'
+        'to': 'SDK'
       },
       'schedule': {
         'departure_time': '13:20',
-        'arrival_time': '14:55',
-        'duration': '1h 35m',
+        'arrival_time': '15:55',
+        'duration': '2h 35m',
         'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       },
       'pricing': {
@@ -177,7 +177,7 @@ class MockMalaysiaFlightService {
       'aircraft': 'A320',
       'route': {
         'from': 'PEN',
-        'to': 'JHB'
+        'to': 'KUL'
       },
       'schedule': {
         'departure_time': '12:10',
@@ -207,8 +207,8 @@ class MockMalaysiaFlightService {
       },
       'schedule': {
         'departure_time': '15:35',
-        'arrival_time': '16:45',
-        'duration': '1h 10m',
+        'arrival_time': '16:55',
+        'duration': '1h 20m',
         'days': ['Tuesday', 'Thursday', 'Saturday', 'Sunday']
       },
       'pricing': {
@@ -258,8 +258,8 @@ class MockMalaysiaFlightService {
       'airline': 'Malaysia Airlines',
       'aircraft': 'B737-800',
       'route': {
-        'from': 'BKI',
-        'to': 'SDK'
+        'from': 'SDK',
+        'to': 'BKI'
       },
       'schedule': {
         'departure_time': '17:20',
@@ -314,8 +314,8 @@ class MockMalaysiaFlightService {
       'airline': 'Malaysia Airlines',
       'aircraft': 'B737-800',
       'route': {
-        'from': 'BKI',
-        'to': 'TWU'
+        'from': 'TWU',
+        'to': 'BKI'
       },
       'schedule': {
         'departure_time': '10:30',
@@ -370,8 +370,8 @@ class MockMalaysiaFlightService {
       'airline': 'Malaysia Airlines',
       'aircraft': 'B737-800',
       'route': {
-        'from': 'KCH',
-        'to': 'SBW'
+        'from': 'SBW',
+        'to': 'KCH'
       },
       'schedule': {
         'departure_time': '14:50',
@@ -405,8 +405,8 @@ class MockMalaysiaFlightService {
       },
       'schedule': {
         'departure_time': '20:45',
-        'arrival_time': '21:55',
-        'duration': '1h 10m',
+        'arrival_time': '21:30',
+        'duration': '45m',
         'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       },
       'pricing': {
@@ -427,12 +427,12 @@ class MockMalaysiaFlightService {
       'aircraft': 'A350',
       'route': {
         'from': 'JHB',
-        'to': 'KUL'
+        'to': 'PEN'
       },
       'schedule': {
         'departure_time': '18:25',
-        'arrival_time': '19:35',
-        'duration': '1h 10m',
+        'arrival_time': '19:45',
+        'duration': '1h 20m',
         'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       },
       'pricing': {
@@ -447,6 +447,226 @@ class MockMalaysiaFlightService {
         'Business Class': {
           'price_myr': 1118,
           'currency': 'MYR'
+        }
+      }
+    },
+    {
+      "id": 17,
+      "flight_number": "AK5312",
+      "airline": "AirAsia",
+      "aircraft": "A320",
+      "route": {
+        "from": "KUL",
+        "to": "SBW"
+      },
+      "schedule": {
+        "departure_time": "09:10",
+        "arrival_time": "11:35",
+        "duration": "2h 25m",
+        "days": ["Monday", "Thursday", "Saturday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 389,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 689,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "flight_number": "AK6120",
+      "airline": "AirAsia",
+      "aircraft": "A320",
+      "route": {
+        "from": "KUL",
+        "to": "PEN"
+      },
+      "schedule": {
+        "departure_time": "08:00",
+        "arrival_time": "09:05",
+        "duration": "1h 5m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 149,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 299,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "flight_number": "MH1140",
+      "airline": "Malaysia Airlines",
+      "aircraft": "B737",
+      "route": {
+        "from": "KUL",
+        "to": "PEN"
+      },
+      "schedule": {
+        "departure_time": "12:45",
+        "arrival_time": "13:50",
+        "duration": "1h 5m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 199,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 349,
+          "currency": "MYR"
+        },
+        "Business Class": {
+          "price_myr": 729,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "flight_number": "AK6123",
+      "airline": "AirAsia",
+      "aircraft": "A320",
+      "route": {
+        "from": "PEN",
+        "to": "KUL"
+      },
+      "schedule": {
+        "departure_time": "17:15",
+        "arrival_time": "18:20",
+        "duration": "1h 5m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 159,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 309,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "flight_number": "MH1053",
+      "airline": "Malaysia Airlines",
+      "aircraft": "B737",
+      "route": {
+        "from": "KUL",
+        "to": "JHB"
+      },
+      "schedule": {
+        "departure_time": "10:20",
+        "arrival_time": "11:20",
+        "duration": "1h 0m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 189,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 329,
+          "currency": "MYR"
+        },
+        "Business Class": {
+          "price_myr": 699,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "flight_number": "AK5592",
+      "airline": "AirAsia",
+      "aircraft": "A320",
+      "route": {
+        "from": "JHB",
+        "to": "SDK"
+      },
+      "schedule": {
+        "departure_time": "15:40",
+        "arrival_time": "18:50",
+        "duration": "3h 10m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 479,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 819,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "flight_number": "AK5594",
+      "airline": "AirAsia",
+      "aircraft": "A320",
+      "route": {
+        "from": "JHB",
+        "to": "TWU"
+      },
+      "schedule": {
+        "departure_time": "09:30",
+        "arrival_time": "12:35",
+        "duration": "3h 5m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 499,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 849,
+          "currency": "MYR"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "flight_number": "MH1114",
+      "airline": "Malaysia Airlines",
+      "aircraft": "B737",
+      "route": {
+        "from": "JHB",
+        "to": "BKI"
+      },
+      "schedule": {
+        "departure_time": "13:00",
+        "arrival_time": "16:10",
+        "duration": "3h 10m",
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "pricing": {
+        "Economy": {
+          "price_myr": 569,
+          "currency": "MYR"
+        },
+        "Economy Premium": {
+          "price_myr": 919,
+          "currency": "MYR"
+        },
+        "Business Class": {
+          "price_myr": 1699,
+          "currency": "MYR"
         }
       }
     }

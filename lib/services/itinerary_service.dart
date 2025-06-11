@@ -679,12 +679,6 @@ class SmartItineraryGenerator {
 
       double totalCost = budgetManager.getTotalSpent();
 
-      print('\n=== FINAL BUDGET SUMMARY ===');
-      print('Original budget: RM${request.maxBudget}');
-      print('Total spent: RM${totalCost.toStringAsFixed(2)}');
-      print('Remaining: RM${(request.maxBudget - totalCost).toStringAsFixed(2)}');
-      print('Budget efficiency: ${((totalCost / request.maxBudget) * 100).toStringAsFixed(1)}%');
-
       return GeneratedItinerary(
         days: days,
         totalCost: totalCost,
