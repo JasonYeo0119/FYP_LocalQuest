@@ -1274,7 +1274,7 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   Color _getPrimaryColor() {
     if (isHotelBooking) return Color(0xFFFF4502);
     if (isAttractionBooking) return Color(0xFF0C1FF7);
-    return Color(0xFF0816A7);
+    return Color(0xFF7107F3);
   }
 
   List<Color> _getGradientColors() {

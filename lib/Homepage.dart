@@ -514,7 +514,7 @@ class _HomepageState extends State<Homepage> {
 
     if (_nextUpcomingTrip == null) {
       return GestureDetector(
-        onTap: () => _navigateToAllinone(), // Navigate to make booking
+        onTap: () => _navigateToStay(), // Navigate to make booking
         child: Container(
           width: double.infinity,
           height: 120,

@@ -460,7 +460,7 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
                 borderSide: BorderSide(color: Colors.red, width: 2),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Colors.black,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
           ),
@@ -503,7 +503,7 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.black,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
@@ -512,7 +512,7 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
                     children: [
                       Text(
                         _selectedCountry,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_drop_down, color: Colors.grey),
@@ -554,7 +554,7 @@ class _UpdateprofiledetailsState extends State<Updateprofiledetails> {
                       borderSide: BorderSide(color: Colors.red, width: 2),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Colors.black,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                 ),
@@ -818,7 +818,7 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
                 SizedBox(width: 8),
                 Text(
                   'Select Country Code',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black),
                 ),
               ],
             ),
@@ -874,7 +874,7 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
                       country["name"]!,
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? Color(0xFF0816A7) : null,
+                        color: isSelected ? Color(0xFF0816A7) : Colors.black,
                       ),
                     ),
                     subtitle: Text(
