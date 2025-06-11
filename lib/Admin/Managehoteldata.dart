@@ -168,7 +168,13 @@ class ManagehoteldataState extends State<Managehoteldata> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Hotel Data"),
+        title: Text("Hotel Data",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: Icon(Icons.home_filled),

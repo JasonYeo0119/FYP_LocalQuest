@@ -208,9 +208,6 @@ class _FavouriteState extends State<Favourite> {
             if (hotel['city'] != null) {
               states.add(hotel['city'].toString());
             }
-            if (hotel['country'] != null) {
-              states.add(hotel['country'].toString());
-            }
             // Add hotel as a type
             types.add('Hotel');
 
@@ -849,22 +846,6 @@ class _FavouriteState extends State<Favourite> {
 
                           Row(
                             children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF0816A7).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  mainType,
-                                  style: TextStyle(
-                                    color: Color(0xFF0816A7),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Spacer(),
                               if (lowestPrice > 0)
                                 Text(
                                   'From MYR ${lowestPrice.toStringAsFixed(2)}',
@@ -874,12 +855,21 @@ class _FavouriteState extends State<Favourite> {
                                     color: Color(0xFF0816A7),
                                   ),
                                 )
-                              else
+                              else if (isHotel)
                                 Text(
                                   'Price varies',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[600],
+                                  ),
+                                )
+                              else
+                                Text(
+                                  'Free Entry',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0816A7),
                                   ),
                                 ),
                             ],

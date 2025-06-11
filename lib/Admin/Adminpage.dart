@@ -57,14 +57,15 @@ class AdminpageState extends State<Adminpage> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Color(0xFF0816A7),
+        backgroundColor: Colors.black,
         elevation: 0,
         automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               'Management Options',
@@ -74,7 +75,7 @@ class AdminpageState extends State<Adminpage> {
                 color: Colors.grey[800],
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 8),
 
             // Grid of Admin Options
             Expanded(

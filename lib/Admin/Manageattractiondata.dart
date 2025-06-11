@@ -165,7 +165,13 @@ class ManageattractiondataState extends State<Manageattractiondata> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Attraction Data"),
+        title: Text("Attraction Data",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: Icon(Icons.home_filled),

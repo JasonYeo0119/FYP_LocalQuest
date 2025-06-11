@@ -775,7 +775,7 @@ class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
             style: TextStyle(
               fontSize: screenWidth * 0.04,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ),
           SizedBox(height: screenHeight * 0.01),
@@ -791,7 +791,7 @@ class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
               style: TextStyle(
                 fontSize: screenWidth * 0.04,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Colors.white,
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
@@ -807,7 +807,7 @@ class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
               style: TextStyle(
                 fontSize: screenWidth * 0.04,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Colors.white,
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
@@ -952,6 +952,7 @@ class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
                   style: TextStyle(
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w600,
+                    color: Colors.black
                   ),
                 ),
                 Text(
@@ -1007,6 +1008,7 @@ class _SavedItineraryDetailPageState extends State<SavedItineraryDetailPage> {
                   style: TextStyle(
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w600,
+                    color: Colors.black
                   ),
                 ),
                 Text(

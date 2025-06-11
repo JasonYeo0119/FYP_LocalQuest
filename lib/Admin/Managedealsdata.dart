@@ -239,8 +239,13 @@ class ManagedealsdataState extends State<Managedealsdata> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Deals Management"),
-        backgroundColor: Colors.blue.shade700,
+        title: Text("Deals Data",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
@@ -261,7 +266,7 @@ class ManagedealsdataState extends State<Managedealsdata> {
           // Search bar and summary
           Container(
             padding: EdgeInsets.all(16),
-            color: Colors.blue.shade50,
+            color: Colors.black,
             child: Column(
               children: [
                 // Search bar
@@ -497,7 +502,7 @@ class DealCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -547,22 +552,22 @@ class DealCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.date_range, size: 16, color: Colors.grey.shade600),
+                      Icon(Icons.date_range, size: 16, color: Colors.black),
                       SizedBox(width: 8),
                       Text(
                         'Start: ${formatDateTime(deal['startDate'], deal['startTime'])}',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black),
                       ),
                     ],
                   ),
                   SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.event, size: 16, color: Colors.grey.shade600),
+                      Icon(Icons.event, size: 16, color: Colors.black),
                       SizedBox(width: 8),
                       Text(
                         'End: ${formatDateTime(deal['endDate'], deal['endTime'])}',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black),
                       ),
                     ],
                   ),

@@ -177,7 +177,7 @@ class _ViewBugReportsState extends State<ViewBugReports> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Color(0xFF0816A7),
+        backgroundColor: Colors.black,
         elevation: 0,
         actions: [
           IconButton(
@@ -193,7 +193,7 @@ class _ViewBugReportsState extends State<ViewBugReports> {
           // Filter Section
           Container(
             padding: EdgeInsets.all(16),
-            color: Colors.grey[100],
+            color: Colors.black,
             child: Column(
               children: [
                 Row(
@@ -250,7 +250,7 @@ class _ViewBugReportsState extends State<ViewBugReports> {
                   'Total Reports: ${filteredReports.length}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -345,13 +345,14 @@ class _ViewBugReportsState extends State<ViewBugReports> {
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.grey[300],
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 report.category,
                                 style: TextStyle(
                                   fontSize: 12,
+                                  color: Colors.black,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

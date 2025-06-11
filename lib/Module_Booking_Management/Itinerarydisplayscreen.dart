@@ -312,14 +312,14 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Total Cost: RM${widget.itinerary.totalCost.toStringAsFixed(2)}",
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.04,
-                        fontWeight: FontWeight.w600,
-                        color: widget.itinerary.isWithinBudget ? Colors.green : Colors.red,
-                      ),
-                    ),
+                    // Text(
+                    //   "Total Cost: RM${widget.itinerary.totalCost.toStringAsFixed(2)}",
+                    //   style: TextStyle(
+                    //     fontSize: screenWidth * 0.04,
+                    //     fontWeight: FontWeight.w600,
+                    //     color: widget.itinerary.isWithinBudget ? Colors.green : Colors.red,
+                    //   ),
+                    // ),
                     Text(
                       "Budget: RM${widget.itinerary.originalRequest.maxBudget.toStringAsFixed(2)}",
                       style: TextStyle(
@@ -515,19 +515,19 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   ),
                 ],
                 SizedBox(height: screenHeight * 0.01),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Day Cost: RM${day.totalCost.toStringAsFixed(2)}",
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.035,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     Text(
+                //       "Day Cost: RM${day.totalCost.toStringAsFixed(2)}",
+                //       style: TextStyle(
+                //         fontSize: screenWidth * 0.035,
+                //         fontWeight: FontWeight.w600,
+                //         color: Colors.green.shade700,
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
           ),
@@ -540,7 +540,7 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
             style: TextStyle(
               fontSize: screenWidth * 0.04,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ),
           SizedBox(height: screenHeight * 0.01),
@@ -559,7 +559,7 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                   style: TextStyle(
                     fontSize: screenWidth * 0.04,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -577,7 +577,7 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
               style: TextStyle(
                 fontSize: screenWidth * 0.04,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Colors.white,
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
@@ -732,6 +732,7 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                 Text(
                   attraction.name,
                   style: TextStyle(
+                    color: Colors.black,
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w600,
                   ),
@@ -787,6 +788,7 @@ class _ItineraryDisplayPageState extends State<ItineraryDisplayPage> {
                 Text(
                   transport.name,
                   style: TextStyle(
+                    color: Colors.black,
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w600,
                   ),

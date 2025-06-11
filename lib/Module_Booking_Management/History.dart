@@ -1110,10 +1110,10 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
             if (booking['hotel']?['rating'] != null) ...[
               Row(
                 children: [
-                  Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                  Icon(Icons.star, size: 16, color: Colors.grey[700]),
                   SizedBox(width: 8),
                   Text(
-                    '${booking['hotel']['rating']} ⭐',
+                    'Rating: ${booking['hotel']['rating']} ⭐',
                     style: TextStyle(color: Colors.grey[700], fontSize: 12),
                   ),
                 ],
@@ -1222,7 +1222,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 Text(
                   'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'monospace',
                   ),
@@ -1503,7 +1504,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                       Text(
                         'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                           fontSize: 12,
                           fontFamily: 'monospace',
                         ),
@@ -1859,7 +1861,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 Text(
                   'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'monospace',
                   ),
@@ -2045,7 +2048,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 Text(
                   'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'monospace',
                   ),
@@ -2433,7 +2437,8 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 Text(
                   'Booking ID: ${booking['bookingId'] ?? 'N/A'}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'monospace',
                   ),

@@ -374,7 +374,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
           'Choose room types and quantities for your stay',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Colors.white,
           ),
         ),
 
@@ -693,12 +693,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFF4502), Color(0xFFFFFF00)],
-        ),
         borderRadius: BorderRadius.circular(15),
+        color: Color(0xFFFF4502),
       ),
       child: Column(
         children: [

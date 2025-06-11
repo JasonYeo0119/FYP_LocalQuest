@@ -380,8 +380,13 @@ class DealsnewState extends State<Dealsnew> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create New Deal"),
-        backgroundColor: Colors.blue.shade700,
+        title: Text("Create New Deal",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 2,
       ),
@@ -564,7 +569,7 @@ class DealsnewState extends State<Dealsnew> {
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade50,
+          color: Colors.black,
         ),
         child: Row(
           children: [
@@ -579,7 +584,7 @@ class DealsnewState extends State<Dealsnew> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
+                      color: Colors.white,
                     ),
                   ),
                   Text(
@@ -649,7 +654,7 @@ class DealsnewState extends State<Dealsnew> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );
@@ -666,7 +671,7 @@ class DealsnewState extends State<Dealsnew> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
+              color: Colors.white,
             ),
           ),
           SizedBox(height: 8),
@@ -815,7 +820,7 @@ class DealsnewState extends State<Dealsnew> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );
@@ -850,7 +855,7 @@ class DealsnewState extends State<Dealsnew> {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.blue.shade600),
-          suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade600),
+          suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade300),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -871,7 +876,7 @@ class DealsnewState extends State<Dealsnew> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );

@@ -636,7 +636,11 @@ class _DealsState extends State<Deals> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Special Deals"),
+        title: Text("Special Deals", style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        ),
         backgroundColor: Color(0xFF0816A7),
         foregroundColor: Colors.white,
         actions: [

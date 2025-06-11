@@ -140,7 +140,7 @@ class _BugReportState extends State<BugReport> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[800],
+            color: Colors.white,
           ),
         ),
         SizedBox(height: 8),
@@ -187,7 +187,7 @@ class _BugReportState extends State<BugReport> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[800],
+              color: Colors.white,
             ),
             children: [
               if (required)
@@ -261,7 +261,7 @@ class _BugReportState extends State<BugReport> {
                     children: [
                       Icon(
                         Icons.bug_report,
-                        color: Color(0xFF0816A7),
+                        color: Colors.white,
                         size: 32,
                       ),
                       SizedBox(width: 12),
@@ -274,7 +274,7 @@ class _BugReportState extends State<BugReport> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0816A7),
+                                color: Colors.white,
                               ),
                             ),
                             SizedBox(height: 4),
@@ -282,7 +282,7 @@ class _BugReportState extends State<BugReport> {
                               'Report bugs or suggest improvements',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: Colors.white,
                               ),
                             ),
                           ],
@@ -448,7 +448,7 @@ class _BugReportState extends State<BugReport> {
                           'Your feedback helps us improve the app. Thank you for taking the time to report this issue!',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Colors.white,
                           ),
                         ),
                       ),

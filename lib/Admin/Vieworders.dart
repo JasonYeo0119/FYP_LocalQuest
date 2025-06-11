@@ -280,8 +280,13 @@ class ViewordersState extends State<Vieworders> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("All Orders"),
-        backgroundColor: Colors.blue.shade700,
+        title: Text("All Bookings",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         actions: [
           IconButton(

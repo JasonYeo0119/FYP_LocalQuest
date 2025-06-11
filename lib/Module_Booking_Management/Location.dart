@@ -327,7 +327,7 @@ class _LocationState extends State<Location> {
                                     flex: 2,
                                     child: Text(
                                       priceItem['remark'] ?? 'Unknown',
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black),
                                     ),
                                   ),
                                   Text(
@@ -615,13 +615,13 @@ class _LocationState extends State<Location> {
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Color(0xFF0816A7).withOpacity(0.1),
+                                color: Colors.white.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 mainType,
                                 style: TextStyle(
-                                  color: Color(0xFF0816A7),
+                                  color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -639,10 +639,11 @@ class _LocationState extends State<Location> {
                               )
                             else
                               Text(
-                                'Price varies',
+                                'Free Entry',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[600],
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                           ],

@@ -530,9 +530,9 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: Colors.black38,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: Colors.black38),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,6 +549,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
 
                   DropdownButtonFormField<String>(
                     value: passenger.checkedBaggageWeight,
+                    dropdownColor: Colors.black,
                     decoration: InputDecoration(
                       labelText: 'Checked Baggage',
                       border: OutlineInputBorder(),
@@ -575,6 +576,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                   // Meal Selection
                   DropdownButtonFormField<String>(
                     value: passenger.selectedMeal ?? 'None',
+                    dropdownColor: Colors.black,
                     decoration: InputDecoration(
                       labelText: 'Meal Preference',
                       border: OutlineInputBorder(),
@@ -607,9 +609,9 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: Colors.black38,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue[200]!),
+        border: Border.all(color: Colors.black38),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1040,7 +1042,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                     ),
                   ),
                   Text(
@@ -1083,7 +1085,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         SizedBox(height: 8),
@@ -1109,7 +1111,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -1117,7 +1119,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                       'MYR ${ticket['price'].toStringAsFixed(2)} x ${ticket['quantity']}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -1130,7 +1132,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                       'Quantity: ${ticket['quantity']}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Colors.white,
                       ),
                     ),
                     Text(
@@ -1298,7 +1300,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ),
           SizedBox(height: 8),
@@ -1343,7 +1345,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
               text,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.black87,
+                color: Colors.white,
               ),
             ),
           ),
@@ -1395,7 +1397,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
                           : 'Select visit date *',
                       style: TextStyle(
                         fontSize: 16,
-                        color: _selectedVisitDate != null ? Colors.black87 : Colors.grey[600],
+                        color: _selectedVisitDate != null ? Colors.white : Colors.grey[600],
                       ),
                     ),
                     Icon(Icons.calendar_today, color: primaryColor),
@@ -1684,7 +1686,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
             label,
             style: TextStyle(
               fontSize: isSubtotal ? 14 : 16,
-              color: isSubtotal ? Colors.grey[600] : Colors.black,
+              color: isSubtotal ? Colors.white : Colors.white,
             ),
           ),
           Flexible(
@@ -1693,7 +1695,7 @@ class _BookingPaymentPageState extends State<BookingPaymentPage> {
               style: TextStyle(
                 fontSize: isSubtotal ? 14 : 16,
                 fontWeight: isSubtotal ? FontWeight.normal : FontWeight.w500,
-                color: isSubtotal ? Colors.grey[600] : Colors.black,
+                color: isSubtotal ? Colors.white : Colors.white,
               ),
               textAlign: TextAlign.right,
             ),

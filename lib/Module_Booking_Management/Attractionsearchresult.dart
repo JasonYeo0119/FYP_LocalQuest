@@ -260,7 +260,6 @@ class _AttractionSearchResultsState extends State<AttractionSearchResults> {
           'Search Results',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.white,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -274,7 +273,6 @@ class _AttractionSearchResultsState extends State<AttractionSearchResults> {
           ),
         ),
       ),
-      backgroundColor: Color(0xFFF5F5F5),
       body: Column(
         children: [
           _buildSearchBar(),

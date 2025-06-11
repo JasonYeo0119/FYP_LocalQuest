@@ -167,7 +167,13 @@ class ManageTransportDataState extends State<ManageTransportData> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Transport Data"),
+        title: Text("Transport Data",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: Icon(Icons.home_filled),

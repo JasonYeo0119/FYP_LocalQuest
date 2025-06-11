@@ -1245,26 +1245,26 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
             SizedBox(height: 10),
             _buildAnimatedDots(),
 
-            // Show number of rooms and nights for hotel bookings
-            if (isHotelBooking && widget.numberOfRooms != null && widget.numberOfNights != null) ...[
-              SizedBox(height: 10),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                ),
-                child: Text(
-                  "${widget.numberOfRooms} room${widget.numberOfRooms! > 1 ? 's' : ''} × ${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ),
-            ],
+            // // Show number of rooms and nights for hotel bookings
+            // if (isHotelBooking && widget.numberOfRooms != null && widget.numberOfNights != null) ...[
+            //   SizedBox(height: 10),
+            //   Container(
+            //     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            //     decoration: BoxDecoration(
+            //       color: Colors.grey.withOpacity(0.1),
+            //       borderRadius: BorderRadius.circular(15),
+            //       border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            //     ),
+            //     child: Text(
+            //       "${widget.numberOfRooms} room${widget.numberOfRooms! > 1 ? 's' : ''} × ${widget.numberOfNights} night${widget.numberOfNights! > 1 ? 's' : ''}",
+            //       style: GoogleFonts.poppins(
+            //         fontSize: 12,
+            //         fontWeight: FontWeight.w500,
+            //         color: Colors.grey[700],
+            //       ),
+            //     ),
+            //   ),
+            // ],
           ],
         ),
       ),
@@ -1286,7 +1286,6 @@ class _PaymentloadingState extends State<Paymentloading> with SingleTickerProvid
   IconData _getCardIcon() {
     if (isHotelBooking) return Icons.hotel;
     if (isAttractionBooking) return Icons.confirmation_number;
-    if (isFlightBooking) return Icons.flight;
     return Icons.credit_card;
   }
 

@@ -279,7 +279,7 @@ class _HotelCardState extends State<HotelCard> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

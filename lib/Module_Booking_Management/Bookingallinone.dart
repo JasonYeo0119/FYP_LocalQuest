@@ -101,7 +101,7 @@ class _BookingallinoneState extends State<Bookingallinone> {
   ];
 
   final List<String> budgetOptions = [
-    "500", "750", "1000", "1500", "2000", "2500", "3000", "3500",
+    "1000", "1500", "2000", "2500", "3000", "3500",
     "4000", "4500", "5000", "10000", "20000", "30000", "50000"
   ];
 

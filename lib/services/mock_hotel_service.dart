@@ -1407,7 +1407,79 @@ class MockMalaysiaHotelService {
           'description': 'Ultimate luxury with exclusive rainforest and beach access'
         }
       ]
-    }
+    },
+    {
+      'id': 43,
+      'name': 'The Majestic Malacca',
+      'address': '188, Jln. Bunga Raya, Pengkalan Rama, 75100 Malacca',
+      'city': 'Malacca',
+      'country': 'Malaysia',
+      'rating': 4.9,
+      'price': 550.0, // Base price (lowest room type)
+      'currency': 'MYR',
+      'type': 'Luxury Hotel',
+      'imageUrl': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=250&fit=crop',
+      'amenities': ['WiFi', 'Pool', 'Gym', 'Spa', 'Fine Dining', 'City View', 'Concierge'],
+      'roomTypes': [
+        {
+          'name': 'Superior Room',
+          'price': 550.0,
+          'quantity': 20,
+          'description': 'Elegant room with city view and modern amenities'
+        },
+        {
+          'name': 'Deluxe Room',
+          'price': 740.0,
+          'quantity': 30,
+          'description': 'Spacious room with good view and premium facilities'
+        },
+        {
+          'name': 'Executive Suite',
+          'price': 1120.0,
+          'quantity': 5,
+          'description': 'Luxurious suite with separate living area and good view'
+        },
+        {
+          'name': 'Presidential Suite',
+          'price': 1890.0,
+          'quantity': 5,
+          'description': 'Ultimate luxury with panoramic city views and butler service'
+        }
+      ]
+    },
+    {
+      'id': 44,
+      'name': 'Swiss Garden Hotel Malacca',
+      'address': 'T2-4, The Shore @ Melaka River, Jalan Persisiran Bunga Raya, 75300 Malacca',
+      'city': 'Malacca',
+      'country': 'Malaysia',
+      'rating': 4.1,
+      'price': 330.0, // Base price (lowest room type)
+      'currency': 'MYR',
+      'type': 'Mid-range Hotel',
+      'imageUrl': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=250&fit=crop',
+      'amenities': ['WiFi', 'Rooftop Pool', 'Gym', 'Bar', 'Sport Facilities'],
+      'roomTypes': [
+        {
+          'name': 'Superior Room',
+          'price': 330.0,
+          'quantity': 45,
+          'description': 'Elegant room with modern amenities'
+        },
+        {
+          'name': 'Deluxe Room',
+          'price': 450.0,
+          'quantity': 38,
+          'description': 'Spacious room with premium facilities'
+        },
+        {
+          'name': 'Family Room',
+          'price': 640.0,
+          'quantity': 22,
+          'description': 'Suitable for family to stay together'
+        }
+      ]
+    },
   ];
 
   static Future<List<Hotel>> searchHotels({String? destination, String? type, double? minPrice, double? maxPrice}) async {
@@ -1481,7 +1553,7 @@ class MockMalaysiaHotelService {
   static List<String> getPopularDestinations() {
     return [
       'Kuala Lumpur', 'Penang', 'Langkawi', 'Kuching',
-      'Johor Bahru', 'Sabah', 'Melaka', 'Port Dickson', 'Cameron Highlands',
+      'Johor Bahru', 'Sabah', 'Malacca', 'Port Dickson', 'Cameron Highlands',
       'Genting Highlands', 'Ipoh'
     ];
   }

@@ -208,8 +208,13 @@ class DealsEditState extends State<DealsEdit> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Edit Deal"),
-        backgroundColor: Colors.blue.shade700,
+        title: Text("Edit Deal",
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 2,
       ),
@@ -324,12 +329,12 @@ class DealsEditState extends State<DealsEdit> {
                         borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
                       ),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: Colors.black,
                     ),
                     items: [
                       DropdownMenuItem(value: 'active', child: Text('Active')),
                       DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                      DropdownMenuItem(value: 'expired', child: Text('Expired')),
+                     // DropdownMenuItem(value: 'expired', child: Text('Expired')),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -413,7 +418,7 @@ class DealsEditState extends State<DealsEdit> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: Colors.black,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -427,11 +432,11 @@ class DealsEditState extends State<DealsEdit> {
                         ),
                       ),
                       SizedBox(height: 4),
-                      Text('ID: ${widget.deal['dealId']}', style: TextStyle(fontSize: 12)),
+                      Text('ID: ${widget.deal['dealId']}', style: TextStyle(fontSize: 12, color: Colors.white)),
                       if (widget.deal['createdAt'] != null)
-                        Text('Created: ${_formatDateTime(widget.deal['createdAt'])}', style: TextStyle(fontSize: 12)),
+                        Text('Created: ${_formatDateTime(widget.deal['createdAt'])}', style: TextStyle(fontSize: 12, color: Colors.white)),
                       if (widget.deal['updatedAt'] != null)
-                        Text('Last Updated: ${_formatDateTime(widget.deal['updatedAt'])}', style: TextStyle(fontSize: 12)),
+                        Text('Last Updated: ${_formatDateTime(widget.deal['updatedAt'])}', style: TextStyle(fontSize: 12, color: Colors.white)),
                     ],
                   ),
                 ),
@@ -451,7 +456,7 @@ class DealsEditState extends State<DealsEdit> {
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade50,
+          color: Colors.black,
         ),
         child: Row(
           children: [
@@ -466,7 +471,7 @@ class DealsEditState extends State<DealsEdit> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
+                      color: Colors.white,
                     ),
                   ),
                   Text(
@@ -536,7 +541,7 @@ class DealsEditState extends State<DealsEdit> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );
@@ -590,7 +595,7 @@ class DealsEditState extends State<DealsEdit> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );
@@ -633,7 +638,7 @@ class DealsEditState extends State<DealsEdit> {
             borderSide: BorderSide(color: Colors.red.shade400, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: Colors.black,
         ),
       ),
     );

@@ -37,7 +37,7 @@ class _StateAttractionsViewerState extends State<StateAttractionsViewer> {
               children: [
                 Icon(
                   Icons.location_on,
-                  color: Theme.of(context).primaryColor,
+                  color: Colors.white,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -97,7 +97,7 @@ class _StateAttractionsViewerState extends State<StateAttractionsViewer> {
               children: [
                 Icon(
                   Icons.place,
-                  color: Theme.of(context).primaryColor,
+                  color: Colors.white,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -266,12 +266,6 @@ class _StateAttractionsDialogState extends State<StateAttractionsDialog> {
   Widget _buildHeader() {
     return Row(
       children: [
-        Icon(
-          Icons.place,
-          color: Theme.of(context).primaryColor,
-          size: 28,
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,23 +383,7 @@ class _StateAttractionsDialogState extends State<StateAttractionsDialog> {
         children: [
           Text(
             'Quick Stats (${_filteredAttractions.length} shown)',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 16,
-            runSpacing: 4,
-            children: priceRanges.entries
-                .where((entry) => entry.value > 0)
-                .map((entry) {
-              return Text(
-                '${entry.key}: ${entry.value}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
-                ),
-              );
-            }).toList(),
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
           ),
         ],
       ),
@@ -456,20 +434,8 @@ class _StateAttractionsDialogState extends State<StateAttractionsDialog> {
     String priceText = price == 0 ? 'Free' : 'RM${price.toStringAsFixed(0)}';
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      leading: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          _getAttractionIcon(attraction.type),
-          color: Theme.of(context).primaryColor,
-          size: 24,
-        ),
-      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+
       title: Text(
         attraction.name,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -492,7 +458,7 @@ class _StateAttractionsDialogState extends State<StateAttractionsDialog> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.location_on, size: 12, color: Colors.grey[500]),
+              Icon(Icons.location_on, size: 12, color: Colors.white),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -521,7 +487,7 @@ class _StateAttractionsDialogState extends State<StateAttractionsDialog> {
                   type,
                   style: TextStyle(
                     fontSize: 10,
-                    color: Theme.of(context).primaryColor,
+                    color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -641,7 +607,11 @@ class AttractionDetailsDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(attraction.description),
+            Text(
+              attraction.description.split(' ').length > 10
+                  ? '${attraction.description.split(' ').take(10).join(' ')}...'
+                  : attraction.description,
+            ),
 
             const SizedBox(height: 16),
 
@@ -655,7 +625,7 @@ class AttractionDetailsDialog extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                Icon(Icons.location_on, size: 16, color: Colors.white),
                 const SizedBox(width: 8),
                 Expanded(child: Text(attraction.address)),
               ],
@@ -679,7 +649,7 @@ class AttractionDetailsDialog extends StatelessWidget {
                   label: Text(type),
                   backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                   labelStyle: TextStyle(
-                    color: Theme.of(context).primaryColor,
+                    color: Colors.white,
                     fontSize: 12,
                   ),
                 );

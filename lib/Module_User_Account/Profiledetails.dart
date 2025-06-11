@@ -306,7 +306,7 @@ class _ProfiledetailsState extends State<Profiledetails> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: Colors.white,
             ),
           ),
           SizedBox(height: 8),
