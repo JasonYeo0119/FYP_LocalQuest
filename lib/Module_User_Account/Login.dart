@@ -215,7 +215,7 @@ class _LoginState extends State<Login> {
                     child: Container(
                       width: responsiveWidth(359), // Constrain width for better text wrapping
                       child: Text(
-                        "A platform that's universally chosen & designed to suit everyone's travel needs",
+                        "A platform that's universally chosen & designed to suit everyone's\ntravel needs",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,

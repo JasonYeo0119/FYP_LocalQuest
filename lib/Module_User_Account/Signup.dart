@@ -358,7 +358,7 @@ class _SignupState extends State<Signup> {
                     child: Container(
                       width: responsiveWidth(359),
                       child: Text(
-                        "A platform that's universally chosen & designed to suit everyone's travel needs",
+                        "A platform that's universally chosen & designed to suit everyone's\ntravel needs",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,

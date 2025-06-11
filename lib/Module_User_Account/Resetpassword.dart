@@ -149,7 +149,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                   child: Text(
-                    "A platform that's universally chosen & designed to suit everyone's travel needs",
+                    "A platform that's universally chosen & designed to suit everyone's\ntravel needs",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
