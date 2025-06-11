@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Model/transport.dart';
 import '../services/transport_service.dart';
-import '../Module_Financial/Payment.dart'; // Import the new payment page
-
-// Replace your current TransportCard class with this enhanced version:
+import '../Module_Financial/Payment.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class TransportCard extends StatefulWidget {
   final Map<String, dynamic> transport;
@@ -31,6 +30,57 @@ class _TransportCardState extends State<TransportCard> {
   String? selectedTime;
   List<int> selectedSeats = [];
   final int maxSeats = 5;
+  List<int> bookedSeats = [];
+
+  // Firebase reference
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  @override
+  void initState() {
+    super.initState();
+    // Load booked seats when the widget initializes
+    _loadBookedSeats();
+  }
+
+  // Method to load booked seats from Firebase
+  Future<void> _loadBookedSeats() async {
+    if (widget.transport['type']?.toString().toLowerCase() != 'bus' ||
+        selectedTime == null ||
+        widget.departDate == null) {
+      return;
+    }
+
+    try {
+      String busId = widget.transport['id'] ?? widget.transport['name'];
+      String dateKey = "${widget.departDate!.year}-${widget.departDate!.month.toString().padLeft(2, '0')}-${widget.departDate!.day.toString().padLeft(2, '0')}";
+
+      DatabaseReference busRef = _database.child('buses').child(busId);
+      DataSnapshot snapshot = await busRef
+          .child('timeSlots')
+          .child(selectedTime!)
+          .child('bookedSeats')
+          .child(dateKey)
+          .get();
+
+      if (snapshot.exists && mounted) {
+        List<int> currentBookedSeats = [];
+
+        if (snapshot.value is List) {
+          currentBookedSeats = (snapshot.value as List).cast<int>();
+        } else if (snapshot.value is Map) {
+          currentBookedSeats = (snapshot.value as Map).values.cast<int>().toList();
+        }
+
+        setState(() {
+          bookedSeats = currentBookedSeats;
+          // Remove any selected seats that are now booked
+          selectedSeats.removeWhere((seat) => bookedSeats.contains(seat));
+        });
+      }
+    } catch (e) {
+      print('Error loading booked seats: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +103,6 @@ class _TransportCardState extends State<TransportCard> {
     if (widget.transport['type']?.toString().toLowerCase() == 'car' && widget.numberOfDays != null) {
       totalPrice = basePrice * widget.numberOfDays!;
     } else if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) {
-      // Add ferry passenger calculation
       totalPrice = basePrice * widget.ferryNumberOfPax!;
     } else {
       totalPrice = basePrice * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
@@ -272,6 +321,10 @@ class _TransportCardState extends State<TransportCard> {
                             selectedSeats.clear();
                           }
                         });
+                        // Load booked seats for the new selected time
+                        if (selectedTime != null) {
+                          _loadBookedSeats();
+                        }
                       },
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -310,6 +363,18 @@ class _TransportCardState extends State<TransportCard> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   SizedBox(height: 8),
+
+                  // Seat Legend
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildSeatLegend(Colors.white, Colors.grey[400]!, 'Available'),
+                      _buildSeatLegend(Colors.deepPurple, Colors.deepPurple, 'Selected'),
+                      _buildSeatLegend(Colors.grey[800]!, Colors.grey[500]!, 'Booked'),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -321,7 +386,7 @@ class _TransportCardState extends State<TransportCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Available Seats: ${availableSeats.length}/${widget.transport['totalSeats'] ?? 33}',
+                          'Available Seats: ${availableSeats.length - bookedSeats.length}/${widget.transport['totalSeats'] ?? 33}',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.grey[700],
@@ -696,11 +761,41 @@ class _TransportCardState extends State<TransportCard> {
     );
   }
 
+  // New method to build seat legend
+  Widget _buildSeatLegend(Color backgroundColor, Color borderColor, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: backgroundColor == Colors.grey[800]
+              ? Icon(Icons.close, size: 12, color: Colors.grey[700])
+              : Icon(Icons.event_seat, size: 12, color: backgroundColor == Colors.white ? Colors.grey[600] : Colors.white),
+        ),
+        SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+      ],
+    );
+  }
+
   bool _canBookNow() {
     // For cars, check availability status
     if (widget.transport['type']?.toString().toLowerCase() == 'car') {
       bool isCarAvailable = widget.transport['isAvailable'] ?? true;
-      return isCarAvailable; // Only allow booking if car is available
+      return isCarAvailable;
     }
 
     List<String> timeSlots = [];
@@ -807,7 +902,6 @@ class _TransportCardState extends State<TransportCard> {
     } else if (widget.transport['type']?.toString().toLowerCase() == 'ferry' && widget.ferryNumberOfPax != null) {
       double basePrice = (widget.transport['price'] ?? 0.0).toDouble();
       totalPrice = basePrice * widget.ferryNumberOfPax!;
-
     } else {
       totalPrice = (widget.transport['price'] ?? 0.0).toDouble() * (selectedSeats.isNotEmpty ? selectedSeats.length : 1);
     }
@@ -832,7 +926,8 @@ class _TransportCardState extends State<TransportCard> {
 
   Widget _buildSeatWidget(int seatNumber) {
     bool isSelected = selectedSeats.contains(seatNumber);
-    bool canSelect = selectedSeats.length < maxSeats || isSelected;
+    bool isBooked = bookedSeats.contains(seatNumber);
+    bool canSelect = !isBooked && (selectedSeats.length < maxSeats || isSelected);
 
     return GestureDetector(
       onTap: canSelect ? () {
@@ -850,14 +945,18 @@ class _TransportCardState extends State<TransportCard> {
         width: 50,
         height: 45,
         decoration: BoxDecoration(
-          color: isSelected
+          color: isBooked
+              ? Colors.grey[800] // Grey color for booked seats
+              : isSelected
               ? Colors.deepPurple
               : canSelect
               ? Colors.white
               : Colors.grey[300],
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected
+            color: isBooked
+                ? Colors.grey[500]! // Darker grey border for booked seats
+                : isSelected
                 ? Colors.deepPurple
                 : Colors.grey[400]!,
             width: 2,
@@ -867,9 +966,13 @@ class _TransportCardState extends State<TransportCard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.event_seat,
+              isBooked
+                  ? Icons.close // X icon for booked seats
+                  : Icons.event_seat, // Regular seat icon for available seats
               size: 18,
-              color: isSelected
+              color: isBooked
+                  ? Colors.grey[700] // Darker grey for booked seat icon
+                  : isSelected
                   ? Colors.white
                   : canSelect
                   ? Colors.grey[600]
@@ -880,7 +983,9 @@ class _TransportCardState extends State<TransportCard> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isSelected
+                color: isBooked
+                    ? Colors.grey[700] // Darker grey for booked seat text
+                    : isSelected
                     ? Colors.white
                     : canSelect
                     ? Colors.black

@@ -1700,7 +1700,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.directions_bus, size: 20, color: Color(0xFF0816A7)),
+                      Icon(Icons.directions_bus, size: 20, color: Color(0xFF7107F3)),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1708,7 +1708,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0816A7),
+                            color: Color(0xFF7107F3),
                           ),
                         ),
                       ),
@@ -1748,6 +1748,25 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                 ),
               ],
             ),
+            SizedBox(height: 8),
+
+            if (booking['transport']?['origin'] != null && booking['transport']?['destination'] != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      booking['transport']['type'] == 'Car'
+                          ? '${booking['transport']['location'] ?? 'Location not specified'}'
+                          : '${booking['transport']['origin'] ?? ''} → ${booking['transport']['destination'] ?? ''}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             SizedBox(height: 8),
 
             if (booking['departDate'] != null) ...[
@@ -1850,7 +1869,7 @@ class _HistoryState extends State<History> with SingleTickerProviderStateMixin {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0816A7),
+                    color: Color(0xFF7107F3),
                   ),
                 ),
               ],
